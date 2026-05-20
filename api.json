@@ -1,0 +1,272 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Workflow Integration API",
+    "description": "API Actions integration for SAP Build Process Automation workflow steps management",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "TechnicalError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["message"]
+      },
+      "ReturnOptionItem": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string" },
+          "targetStepId": { "type": "string" },
+          "label_vn": { "type": "string" },
+          "label_en": { "type": "string" }
+        }
+      },
+      "ReassigneeUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "employeeID": { "type": "string" },
+          "fullName": { "type": "string" },
+          "role": { "type": "string" },
+          "status": { "type": "string" },
+          "email": { "type": "string" }
+        }
+      },
+      "HistoryStepItem": {
+        "type": "object",
+        "properties": {
+          "step": { "type": "string" },
+          "approver": { "type": "string" },
+          "status": { "type": "string" },
+          "comment": { "type": "string" },
+          "timestamp": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/returnoption": {
+      "get": {
+        "summary": "Get dynamic return options",
+        "operationId": "getDynamicReturnOptions",
+        "security": [{ "BearerToken": [] }],
+        "parameters": [
+          {
+            "name": "stepId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "approverId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "actorRole": { "type": "string" },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReturnOptionItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TechnicalError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workflow/WorkflowSteps/{id}": {
+      "post": {
+        "summary": "Process workflow step outcome",
+        "operationId": "updateWorkflowStepStatus",
+        "security": [{ "BearerToken": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status_code"
+                ],
+                "properties": {
+                  "status_code": {
+                    "type": "string"
+                  },
+                  "approverId": {
+                    "type": "string"
+                  },
+                  "comment": {
+                    "type": "string"
+                  },
+                  "actionBy": {
+                    "type": "string"
+                  },
+                  "targetId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+          "responses": {
+            "200": {
+              "description": "Success",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": { "type": "boolean" },
+                      "message": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/TechnicalError" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/workflow/get-valid-reassignees": {
+        "post": {
+          "summary": "Get valid reassignees",
+          "operationId": "getValidReassignees",
+          "security": [{ "BearerToken": [] }],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "current_approver_id",
+                    "current_role"
+                  ],
+                  "properties": {
+                    "current_approver_id": {
+                      "type": "string"
+                    },
+                    "current_role": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+            "responses": {
+              "200": {
+                "description": "Success",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "success": { "type": "boolean" },
+                        "total": { "type": "integer" },
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ReassigneeUser"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/api/pr/{id}/history-steps": {
+          "get": {
+            "summary": "Get PR history steps",
+            "operationId": "getPRHistorySteps",
+            "security": [{ "BearerToken": [] }],
+            "parameters": [
+              {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": { "type": "string" }
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Success",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "success": { "type": "boolean" },
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/HistoryStepItem"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }

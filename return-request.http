@@ -1,0 +1,70 @@
+### Định nghĩa các biến toàn cục để test
+@baseUrl = http://localhost:3000
+@step1_SupervisorId = eb37082a-b010-4d11-a47e-5d7382d30fef
+@step2_SectionManagerId = d17d085c-cbe4-4cbb-bfb3-52dfcccd3900
+
+@user_Supervisor = 550e8400-e29b-41d4-a716-446655440008
+@user_SectionManager = 550e8400-e29b-41d4-a716-446655440101
+
+
+### -------------------------------------------------------------
+### KỊCH BẢN THỬ NGHIỆM: ĐÓNG VAI CURRENT APPROVER
+### -------------------------------------------------------------
+
+### Bước A1: Hãy xem cấu trúc Workflow lúc đầu (Step 1 READY, Step 2 PLANNED)
+GET {{baseUrl}}/wfstep
+Content-Type: application/json
+
+###
+
+### Bước A2: Gọi xem Popup Return khi Supervisor (Đầu Luồng) bấm nút
+### Kết quả mong muốn: Chỉ hiện lựa chọn duy nhất là trả về "Requester" (vì trước đó không có bước duyệt nào)
+GET {{baseUrl}}/returnoption?stepId={{step1_SupervisorId}}&approverId={{user_Supervisor}}
+Content-Type: application/json
+
+###
+
+### Bước A3: Thực hiện APPROVE bước 1 để đẩy luồng chạy tiếp sang Bước 2
+POST {{baseUrl}}/api/workflow/WorkflowSteps/{{step1_SupervisorId}}
+Content-Type: application/json
+
+{
+    "status_code": "APPROVE",
+    "approverId": "{{user_Supervisor}}",
+    "comment": "Thông qua bước kiểm tra hóa đơn đợt 1.",
+    "actionBy": "Cao Thanh Hải"
+}
+
+###
+
+### Bước A4: Gọi xem Popup Return khi Section Manager đang là CURRENT APPROVER (Bước 2 READY)
+### Kết quả mong muốn: Hiện thêm "Trả về bước: Supervisor Approval" (vì bước 1 đã APPROVED thành công)
+GET {{baseUrl}}/returnoption?stepId={{step2_SectionManagerId}}&approverId={{user_SectionManager}}
+Content-Type: application/json
+
+
+### -------------------------------------------------------------
+### KỊCH BẢN THỬ NGHIỆM: ĐÓNG VAI PREVIOUS APPROVER (Người duyệt cũ)
+### -------------------------------------------------------------
+
+### Bước B1: Giả định lúc này luồng đang ở Step 2, nhưng Supervisor (Người duyệt cũ ở Step 1)
+### quay lại bấm nút Return trên UI để giật ngược hồ sơ về.
+### Kết quả mong muốn: Popup hiển thị cho phép chọn "Trả về bước: Section Manager Approval (READY)"
+### kèm theo các bước cũ trước đó (Requester).
+GET {{baseUrl}}/returnoption?stepId={{step1_SupervisorId}}&approverId={{user_Supervisor}}
+Content-Type: application/json
+
+###
+
+### Bước B2: Thực hiện hành động Return thực tế từ kết quả chọn của Popup trên
+### Trả ngược luồng từ Step 2 về lại cho chính Supervisor (Step 1) sửa đổi tiếp
+POST {{baseUrl}}/api/workflow/WorkflowSteps/{{step2_SectionManagerId}}
+Content-Type: application/json
+
+{
+    "status_code": "RETURN",
+    "approverId": "{{user_SectionManager}}",
+    "targetId": "{{step1_SupervisorId}}",
+    "comment": "Cần xem xét lại chi phí phân bổ, trả về bước Supervisor.",
+    "actionBy": "Nguyễn Hải Long"
+}

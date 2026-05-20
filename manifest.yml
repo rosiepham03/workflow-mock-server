@@ -1,0 +1,6 @@
+applications:
+  - name: workflow-mock-server
+    memory: 128M
+    buildpacks:
+      - nodejs_buildpack
+    command: node server.js
