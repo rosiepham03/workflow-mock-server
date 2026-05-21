@@ -1,0 +1,158 @@
+### =========================================================================
+### ĐỊNH NGHĨA CÁC BIẾN TOÀN CỤC (Khớp chính xác với Mock Data của dự án)
+### =========================================================================
+@baseUrl = https://port8082-workspaces-ws-z643x.us10.trial.applicationstudio.cloud.sap
+
+# ID của các Bước xử lý (Workflow Steps)
+@step1_SupervisorId = eb37082a-b010-4d11-a47e-5d7382d30fef
+@step2_SectionManagerId = d17d085c-cbe4-4cbb-bfb3-52dfcccd3900
+
+# ID của Người phê duyệt (Users)
+@user_Supervisor = 550e8400-e29b-41d4-a716-446655440008
+@user_SectionManager = 550e8400-e29b-41d4-a716-446655440101
+
+# ID của Chứng từ tổng (Payment Request)
+@prId = 550e8400-e29b-41d4-a716-446655440003
+
+
+### =========================================================================
+### KỊCH BẢN A: ĐÓNG VAI CURRENT APPROVER (Luồng chạy xuôi)
+### =========================================================================
+
+### Bước A1: Xem cấu trúc Workflow ban đầu (Kỳ vọng: Step 1 READY, Step 2 PLANNED)
+GET {{baseUrl}}/wfstep
+Accept: application/json
+
+###
+
+### Bước A2: Gọi Popup Return tại Bước 1 (Đầu luồng)
+### Kỳ vọng: Chỉ hiển thị duy nhất lựa chọn trả về "Requester" vì chưa ai duyệt trước đó
+GET {{baseUrl}}/returnoption?stepId={{step1_SupervisorId}}&approverId={{user_Supervisor}}
+Accept: application/json
+
+###
+
+### Bước A3: Thực hiện APPROVE Bước 1 (Đẩy luồng sang Bước 2)
+### Kỳ vọng: Trạng thái Step 1 thành APPROVED, tự động kích hoạt Step 2 lên READY
+POST {{baseUrl}}/api/workflow/WorkflowSteps/{{step1_SupervisorId}}
+Content-Type: application/json
+
+{
+  "status_code": "APPROVE",
+  "approverId": "{{user_Supervisor}}",
+  "comment": "Thông qua bước kiểm tra hóa đơn đợt 1.",
+  "actionBy": "Cao Thanh Hải"
+}
+
+###
+
+### Bước A4: Gọi Popup Return tại Bước 2 (Khi Section Manager đang giữ hồ sơ)
+### Kỳ vọng: Xuất hiện thêm phương án "Trả về bước: Supervisor Approval" vì Bước 1 đã duyệt xong
+GET {{baseUrl}}/returnoption?stepId={{step2_SectionManagerId}}&approverId={{user_SectionManager}}
+Accept: application/json
+
+
+### =========================================================================
+### KỊCH BẢN B: ĐÓNG VAI PREVIOUS APPROVER (Giật ngược hồ sơ)
+### =========================================================================
+
+### Bước B1: Giả định luồng ở Step 2, nhưng Supervisor (Người duyệt cũ ở Step 1) quay lại bấm Return trên UI
+### Kỳ vọng: Popup cho phép chọn trả ngược về "Section Manager Approval (READY)" hoặc "Requester"
+GET {{baseUrl}}/returnoption?stepId={{step1_SupervisorId}}&approverId={{user_Supervisor}}
+Accept: application/json
+
+###
+
+### Bước B2: Thực hiện hành động RETURN thực tế (Trả từ Bước 2 về lại Bước 1)
+POST {{baseUrl}}/api/workflow/WorkflowSteps/{{step2_SectionManagerId}}
+Content-Type: application/json
+
+{
+  "status_code": "RETURN",
+  "approverId": "{{user_SectionManager}}",
+  "targetId": "{{step1_SupervisorId}}",
+  "comment": "Cần xem xét lại chi phí phân bổ, trả về bước Supervisor.",
+  "actionBy": "Nguyễn Hải Long"
+}
+
+
+### =========================================================================
+### KỊCH BẢN C: THỬ NGHIỆM CÁC OUTCOMES KHÁC (Xử lý biệt lệ)
+### =========================================================================
+
+### Case C1: REJECT (Từ chối thẳng cánh) -> Luồng gãy, các bước sau bị CANCELLED
+POST {{baseUrl}}/api/workflow/WorkflowSteps/{{step1_SupervisorId}}
+Content-Type: application/json
+
+{
+  "status_code": "REJECT",
+  "approverId": "{{user_Supervisor}}",
+  "comment": "Hủy bỏ yêu cầu do trùng lặp thiết bị mua sắm của dự án.",
+  "actionBy": "Cao Thanh Hải"
+}
+
+###
+
+### Case C2: REASSIGN (Ủy quyền/Bàn giao quyền duyệt cho người khác)
+POST {{baseUrl}}/api/workflow/WorkflowSteps/{{step1_SupervisorId}}
+Content-Type: application/json
+
+{
+  "status_code": "REASSIGN",
+  "approverId": "{{user_Supervisor}}",
+  "targetId": "550e8400-e29b-41d4-a716-446655440104",
+  "comment": "Tuần này tôi đi công tác hiện trường, bàn giao lại cho Đỗ Văn Linh hỗ trợ xử lý luồng.",
+  "actionBy": "Đỗ Văn Linh"
+}
+
+###
+
+### Case C3: ON_HOLD (Tạm dừng luồng hồ sơ để bổ sung chứng từ)
+POST {{baseUrl}}/api/workflow/WorkflowSteps/{{step1_SupervisorId}}
+Content-Type: application/json
+
+{
+  "status_code": "ON_HOLD",
+  "approverId": "{{user_Supervisor}}",
+  "comment": "Đang tạm dừng để chờ hội đồng kiểm định chất lượng thẩm định lại giá gốc.",
+  "actionBy": "Cao Thanh Hải"
+}
+
+
+### =========================================================================
+### KỊCH BẢN D: KIỂM TRA PHÂN HỆ PAYMENT REQUEST & AUXILIARY (4 API bổ sung)
+### =========================================================================
+
+### Đọc chi tiết thông tin của một Payment Request tổng
+GET {{baseUrl}}/api/pr/{{prId}}
+Accept: application/json
+
+###
+
+### Lấy lịch sử các bước đã duyệt thành công của Payment Request
+GET {{baseUrl}}/api/pr/{{prId}}/history-steps
+Accept: application/json
+
+###
+
+### Lấy danh sách nhân sự đồng cấp hợp lệ để phục vụ tính năng Reassign
+POST {{baseUrl}}/api/workflow/get-valid-reassignees
+Content-Type: application/json
+
+{
+  "current_approver_id": "{{user_Supervisor}}",
+  "current_role": "Supervisor"
+}
+
+###
+
+### Cập nhật thô trạng thái Payment Request trực tiếp (Không qua State Machine)
+POST {{baseUrl}}/api/pr/update-status
+Content-Type: application/json
+
+{
+  "pr_id": "{{prId}}",
+  "status": "APPROVED",
+  "comment": "Cập nhật trạng thái thủ công từ quản trị viên hệ thống.",
+  "approver_id": "ADMIN_01"
+}

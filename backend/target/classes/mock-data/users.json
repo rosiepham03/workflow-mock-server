@@ -1,0 +1,202 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "employeeID": "E001",
+    "fullName": "Nguyễn Văn An",
+    "email": "an.nguyen@vn.bosch.com",
+    "role": "Supervisor",
+    "department": "Production",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/1.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "employeeID": "E002",
+    "fullName": "Trần Thị Bình",
+    "email": "binh.tran@vn.bosch.com",
+    "role": "Supervisor",
+    "department": "Quality",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/2.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "employeeID": "E003",
+    "fullName": "Phạm Duy Hùng",
+    "email": "hung.pham@vn.bosch.com",
+    "role": "Division Manager",
+    "department": "Operations",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/3.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440004",
+    "employeeID": "E004",
+    "fullName": "Võ Thị Hương",
+    "email": "huong.vo@vn.bosch.com",
+    "role": "Deputy Division Manager",
+    "department": "Operations",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/4.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440005",
+    "employeeID": "E005",
+    "fullName": "Bùi Quốc Hòa",
+    "email": "hoa.bui@vn.bosch.com",
+    "role": "Department Manager",
+    "department": "Engineering",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/5.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440006",
+    "employeeID": "E006",
+    "fullName": "Đặng Thị Lan",
+    "email": "lan.dang@vn.bosch.com",
+    "role": "Department Manager",
+    "department": "Sales",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/6.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440007",
+    "employeeID": "E007",
+    "fullName": "Lê Văn Minh",
+    "email": "minh.le@vn.bosch.com",
+    "role": "Section Manager",
+    "department": "Production",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/7.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440008",
+    "employeeID": "E008",
+    "fullName": "Cao Thanh Hải",
+    "email": "hai.cao@vn.bosch.com",
+    "role": "Supervisor",
+    "department": "Production",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/8.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440009",
+    "employeeID": "E009",
+    "fullName": "Nguyễn Thị Hồng",
+    "email": "hong.nguyen@vn.bosch.com",
+    "role": "Section Manager",
+    "department": "Quality",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/9.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440010",
+    "employeeID": "E010",
+    "fullName": "Nguyễn Hải Long",
+    "email": "long.nguyen@vn.bosch.com",
+    "role": "Section Manager",
+    "department": "Engineering",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/10.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440011",
+    "employeeID": "E011",
+    "fullName": "Phạm Thị Mai",
+    "email": "mai.pham@vn.bosch.com",
+    "role": "Accountant",
+    "department": "Finance",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/11.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440012",
+    "employeeID": "E012",
+    "fullName": "Trần Chí Kiên",
+    "email": "kien.tran@vn.bosch.com",
+    "role": "Section Manager",
+    "department": "Sales",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/12.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440013",
+    "employeeID": "E013",
+    "fullName": "Hoàng Thị Thu",
+    "email": "thu.hoang@vn.bosch.com",
+    "role": "Accountant",
+    "department": "Finance",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/13.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440014",
+    "employeeID": "E014",
+    "fullName": "Vũ Đức Anh",
+    "email": "anh.vu@vn.bosch.com",
+    "role": "Department Manager",
+    "department": "HR",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/14.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440015",
+    "employeeID": "E015",
+    "fullName": "Đỗ Thị Hà",
+    "email": "ha.do@vn.bosch.com",
+    "role": "Supervisor",
+    "department": "HR",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/15.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440016",
+    "employeeID": "E016",
+    "fullName": "Ngô Văn Thành",
+    "email": "thanh.ngo@vn.bosch.com",
+    "role": "Division Manager",
+    "department": "Technology",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/16.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440017",
+    "employeeID": "E017",
+    "fullName": "Lý Thị Hằng",
+    "email": "hang.ly@vn.bosch.com",
+    "role": "Accountant",
+    "department": "Finance",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/17.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440018",
+    "employeeID": "E018",
+    "fullName": "Đinh Quang Huy",
+    "email": "huy.dinh@vn.bosch.com",
+    "role": "Supervisor",
+    "department": "IT",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/18.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440019",
+    "employeeID": "E019",
+    "fullName": "Mai Thị Cúc",
+    "email": "cuc.mai@vn.bosch.com",
+    "role": "Section Manager",
+    "department": "IT",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/women/19.jpg"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440020",
+    "employeeID": "E020",
+    "fullName": "Trịnh Quang Đức",
+    "email": "duc.trinh@vn.bosch.com",
+    "role": "Department Manager",
+    "department": "IT",
+    "status": "Active",
+    "avatar": "https://randomuser.me/api/portraits/men/20.jpg"
+  }
+]

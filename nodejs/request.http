@@ -1,5 +1,5 @@
 ### Cấu hình biến môi trường cục bộ
-@baseUrl = https://port8080-workspaces-ws-z643x.us10.trial.applicationstudio.cloud.sap
+@baseUrl = https://port8082-workspaces-ws-z643x.us10.trial.applicationstudio.cloud.sap
 @stepId = eb37082a-b010-4d11-a47e-5d7382d30fef
 @approverId = 550e8400-e29b-41d4-a716-446655440008
 @prId = 550e8400-e29b-41d4-a716-446655440003

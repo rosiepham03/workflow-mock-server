@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="1.0" xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx">
+    <edmx:DataServices m:DataServiceVersion="2.0" m:MaxDataServiceVersion="3.0" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata">
+        <Schema Namespace="MockService" xmlns="http://schemas.microsoft.com/ado/2008/09/edm">
+            <EntityType Name="DummyEntityType">
+                <Key>
+                    <PropertyRef Name="ID" />
+                </Key>
+                <Property Name="ID" Type="Edm.String" Nullable="false" />
+            </EntityType>
+            <EntityContainer Name="MockContainer" m:IsDefaultEntityContainer="true">
+                <EntitySet Name="DummyEntity" EntityType="MockService.DummyEntityType" />
+            </EntityContainer>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="1.0" xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:sap="http://www.sap.com/Protocols/SAPData">
+    <edmx:DataServices m:DataServiceVersion="2.0">
+        <Schema Namespace="WorkflowMockService" xmlns="http://schemas.microsoft.com/ado/2008/09/edm">
+
+            <EntityType Name="WorkflowStepType">
+                <Key>
+                    <PropertyRef Name="id" />
+                </Key>
+                <Property Name="id" Type="Edm.String" Nullable="false" sap:label="Step ID" />
+                <Property Name="levelName" Type="Edm.String" sap:label="Tên cấp duyệt" />
+                <Property Name="status" Type="Edm.String" sap:label="Trạng thái bước" />
+                <Property Name="sortOrder" Type="Edm.Int32" sap:label="Thứ tự sắp xếp" />
+                <Property Name="isParallel" Type="Edm.Boolean" sap:label="Duyệt đồng thời" />
+                <Property Name="isActiveEntity" Type="Edm.Boolean" sap:label="Thực thể kích hoạt" />
+                <Property Name="completeAt" Type="Edm.String" sap:label="Thời gian hoàn thành" />
+                <Property Name="modifiedAt" Type="Edm.String" sap:label="Thời gian chỉnh sửa" />
+                <Property Name="modifiedBy" Type="Edm.String" sap:label="Người chỉnh sửa" />
+                <NavigationProperty Name="stepApprovers" Relationship="WorkflowMockService.BR_Step_To_Approvers" FromRole="FromStep" ToRole="ToApprovers" />
+            </EntityType>
+
+            <EntityType Name="StepApproverType">
+                <Key>
+                    <PropertyRef Name="approverId" />
+                </Key>
+                <Property Name="approverId" Type="Edm.String" Nullable="false" sap:label="Approver ID" />
+                <Property Name="status" Type="Edm.String" sap:label="Trạng thái phê duyệt" />
+                <Property Name="comment" Type="Edm.String" sap:label="Ý kiến phê duyệt" />
+                <Property Name="completeAt" Type="Edm.String" sap:label="Ngày duyệt" />
+                <Property Name="modifiedAt" Type="Edm.String" sap:label="Ngày cập nhật" />
+                <Property Name="modifiedBy" Type="Edm.String" sap:label="Người cập nhật" />
+                <Property Name="actualApproverId" Type="Edm.String" sap:label="ID Người nhận ủy quyền" />
+                <NavigationProperty Name="approver" Relationship="WorkflowMockService.BR_Approver_To_User" FromRole="FromStepApprover" ToRole="ToUserDetail" />
+            </EntityType>
+
+            <EntityType Name="UserType">
+                <Key>
+                    <PropertyRef Name="id" />
+                </Key>
+                <Property Name="id" Type="Edm.String" Nullable="false" />
+                <Property Name="employeeID" Type="Edm.String" sap:label="Mã nhân viên" />
+                <Property Name="fullName" Type="Edm.String" sap:label="Họ và Tên" />
+                <Property Name="email" Type="Edm.String" sap:label="Email công tác" />
+                <Property Name="role" Type="Edm.String" sap:label="Vai trò/Cấp bậc" />
+                <Property Name="status" Type="Edm.String" sap:label="Trạng thái tài khoản" />
+            </EntityType>
+
+            <EntityType Name="PaymentRequestType">
+                <Key>
+                    <PropertyRef Name="pr_id" />
+                </Key>
+                <Property Name="pr_id" Type="Edm.String" Nullable="false" sap:label="Mã chứng từ PR" />
+                <Property Name="status" Type="Edm.String" sap:label="Trạng thái tổng" />
+                <Property Name="current_step" Type="Edm.String" sap:label="Bước xử lý hiện tại" />
+                <Property Name="amount" Type="Edm.Decimal" sap:label="Số tiền thanh toán" />
+                <Property Name="currency" Type="Edm.String" sap:label="Loại tiền tệ" />
+            </EntityType>
+
+            <Association Name="BR_Step_To_Approvers">
+                <End Role="FromStep" Type="WorkflowMockService.WorkflowStepType" Multiplicity="1" />
+                <End Role="ToApprovers" Type="WorkflowMockService.StepApproverType" Multiplicity="*" />
+            </Association>
+            <Association Name="BR_Approver_To_User">
+                <End Role="FromStepApprover" Type="WorkflowMockService.StepApproverType" Multiplicity="1" />
+                <End Role="ToUserDetail" Type="WorkflowMockService.UserType" Multiplicity="0..1" />
+            </Association>
+
+            <EntityContainer Name="WorkflowMockContainer" m:IsDefaultEntityContainer="true">
+                
+                <EntitySet Name="WorkflowSteps" EntityType="WorkflowMockService.WorkflowStepType" sap:content-version="1" />
+                <EntitySet Name="StepApprovers" EntityType="WorkflowMockService.StepApproverType" sap:content-version="1" />
+                <EntitySet Name="Users" EntityType="WorkflowMockService.UserType" sap:content-version="1" />
+                <EntitySet Name="PaymentRequests" EntityType="WorkflowMockService.PaymentRequestType" sap:content-version="1" />
+
+                <FunctionImport Name="UpdateWorkflowStep" ReturnType="Edm.String" m:HttpMethod="POST">
+                    <Parameter Name="id" Type="Edm.String" Mode="In" />
+                    <Parameter Name="statusCode" Type="Edm.String" Mode="In" />
+                    <Parameter Name="actionBy" Type="Edm.String" Mode="In" />
+                    <Parameter Name="comment" Type="Edm.String" Mode="In" />
+                    <Parameter Name="targetId" Type="Edm.String" Mode="In" Nullable="true" />
+                    <Parameter Name="approverId" Type="Edm.String" Mode="In" Nullable="true" />
+                </FunctionImport>
+
+                <FunctionImport Name="GetValidReassignees" ReturnType="Collection(WorkflowMockService.UserType)" m:HttpMethod="POST">
+                    <Parameter Name="current_approver_id" Type="Edm.String" Mode="In" />
+                    <Parameter Name="current_role" Type="Edm.String" Mode="In" />
+                </FunctionImport>
+
+                <FunctionImport Name="GetPRHistorySteps" ReturnType="Edm.String" m:HttpMethod="GET">
+                    <Parameter Name="id" Type="Edm.String" Mode="In" />
+                </FunctionImport>
+
+            </EntityContainer>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

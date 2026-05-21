@@ -1,0 +1,25 @@
+{
+  "name": "workflow-ui5-tester",
+  "version": "0.0.1",
+  "description": "UI5 Workflow API Tester for Spring Boot Backend",
+  "keywords": [
+    "ui5",
+    "openui5",
+    "sapui5"
+  ],
+  "main": "webapp/index.html",
+  "devDependencies": {
+    "@sap-ux/eslint-plugin-fiori-tools": "^10.0.0",
+    "@sap-ux/ui5-middleware-fe-mockserver": "2",
+    "@sap/ux-ui5-tooling": "1",
+    "@ui5/cli": "^4.0.33",
+    "eslint": "^10",
+    "ui5-middleware-simpleproxy": "^3.7.0"
+  },
+  "scripts": {
+    "start": "ui5 serve --port 8081 --open index.html",
+    "build": "ui5 build --clean-dest --dest dist"
+  },
+  "sapuxLayer": "CUSTOMER_BASE",
+  "sapux": true
+}
