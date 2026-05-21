@@ -1,0 +1,22 @@
+{
+  "550e8400-e29b-41d4-a716-446655440003": {
+    "pr_id": "550e8400-e29b-41d4-a716-446655440003",
+    "pr_code": "PR-2026-00512",
+    "title": "Yêu cầu thanh toán tiền bản quyền phần mềm Cloud 2026",
+    "amount": 12500.00,
+    "currency": "USD",
+    "requester": "Nguyễn Văn A",
+    "department": "IT Commercial",
+    "status": "IN_PROGRESS",
+    "current_step": "Supervisor Approval",
+    "history_log": [
+      {
+        "step": "Khởi tạo Yêu cầu",
+        "approver": "Nguyễn Văn A",
+        "status": "SUBMITTED",
+        "comment": "Gửi kế hoạch giải ngân đợt 1.",
+        "timestamp": "2026-05-18T02:30:00Z"
+      }
+    ]
+  }
+}

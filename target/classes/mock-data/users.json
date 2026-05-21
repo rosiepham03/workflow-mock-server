@@ -1,0 +1,42 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440008",
+    "employeeID": "E_SUP_01",
+    "fullName": "Cao Thanh Hải",
+    "role": "Supervisor",
+    "status": "Active",
+    "email": "hai.cao@vn.bosch.com"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440104",
+    "employeeID": "E_SUP_02",
+    "fullName": "Đỗ Văn Linh",
+    "role": "Supervisor",
+    "status": "Active",
+    "email": "linh.dovan@vn.bosch.com"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440105",
+    "employeeID": "E_SUP_03",
+    "fullName": "Trần Thu Trang",
+    "role": "Supervisor",
+    "status": "Active",
+    "email": "trang.tranthu@vn.bosch.com"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440101",
+    "employeeID": "E_MGR_02",
+    "fullName": "Nguyễn Hải Long",
+    "role": "Section Manager",
+    "status": "Active",
+    "email": "long.nguyenhai@vn.bosch.com"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655449999",
+    "employeeID": "E_DIR_03",
+    "fullName": "Võ Thị Hương",
+    "role": "Department Head",
+    "status": "Active",
+    "email": "huong.vothi@vn.bosch.com"
+  }
+]

@@ -2,7 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 
 const app = express();
-const PORT = 3000;
+// const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Import mock data từ bộ nhớ cache của Node.js
 const workflowData = require('./mock-data/workflow.json');
@@ -17,6 +18,11 @@ function findWorkflowStep(stepId) {
     if (!workflowData || !workflowData.workflowSteps) return null;
     return workflowData.workflowSteps.find(step => step.ID === stepId);
 }
+
+// Thêm API endpoint gốc phục vụ riêng cho SAP Cloud Foundry Health Check
+app.get('/', (req, res) => {
+    res.status(200).send('OK');
+});
 
 // ======================================================
 // 1. GET FULL WORKFLOW
@@ -45,7 +51,7 @@ app.get('/returnoption', (req, res) => {
     }
 
     // Mặc định luôn có tùy chọn trả hẳn về ban đầu cho Người tạo (Requester)
-    const options = [
+    let options = [
         {
             code: "RETURN_TO_REQUESTER",
             targetStepId: null,
@@ -58,35 +64,56 @@ app.get('/returnoption', (req, res) => {
     const isCurrentApprover = (actionStep.status === 'READY' || actionStep.status === 'IN_PROGRESS');
 
     // Quét toàn bộ danh sách các bước trong Workflow để lọc ra các option hiển thị lên Popup
+    // Mục tiêu: trả về danh sách "approver" phù hợp theo 2 kịch bản:
+    // - Nếu Current Approver bấm Return: hiển thị các approver có status === 'APPROVED' (từ các bước trước)
+    // - Nếu Previous Approver bấm Return: hiển thị các approver có status === 'APPROVED' (các bước trước)
+    //   và kèm theo approver của bước hiện tại (READY/IN_PROGRESS) để có thể trả về cho Current Approver
     workflowData.workflowSteps.forEach(step => {
+        if (!Array.isArray(step.stepApprovers)) return;
 
-        if (isCurrentApprover) {
-            // KỊCH BẢN 1: Người duyệt HIỆN TẠI bấm Return
-            // -> Chỉ hiện các step đứng trước và đã duyệt xong xuôi (COMPLETED)
-            if (step.sortOrder < actionStep.sortOrder && step.status === 'COMPLETED') {
-                options.push({
-                    code: "RETURN_TO_PREVIOUS_STEP",
-                    targetStepId: step.ID,
-                    label_vn: `Trả về bước: ${step.levelName}`,
-                    label_en: `Return to: ${step.levelName}`
-                });
-            }
-        } else {
-            // KỊCH BẢN 2: Người duyệt CŨ TRONG QUÁ KHỨ (Previous Approver) bấm Return
-            // -> Hiện các bước duyệt TRƯỚC HỌ + KÈM THEO cả bước của Người duyệt HIỆN TẠI (Đang READY/IN_PROGRESS)
-            const isStepBeforeThem = (step.sortOrder < actionStep.sortOrder && step.status === 'COMPLETED');
-            const isTheCurrentActiveStep = (step.status === 'READY' || step.status === 'IN_PROGRESS');
+        step.stepApprovers.forEach(sa => {
+            const saStatus = (sa.status || '').toUpperCase();
+            const approverLabel = (sa.approver && (sa.approver.fullName || sa.approver.employeeID)) || sa.approver_id || 'Unknown';
 
-            if (isStepBeforeThem || isTheCurrentActiveStep) {
-                options.push({
-                    code: "RETURN_TO_STEP",
-                    targetStepId: step.ID,
-                    label_vn: `Trả về bước: ${step.levelName} (${step.status})`,
-                    label_en: `Return to: ${step.levelName} (${step.status})`
-                });
+            if (isCurrentApprover) {
+                // Kịch bản 1: Current approver bấm Return -> list các approver đã "APPROVED" ở các bước trước
+                if (step.sortOrder < actionStep.sortOrder && saStatus === 'APPROVED') {
+                    options.push({
+                        code: "RETURN_TO_PREVIOUS_APPROVER",
+                        targetStepId: step.ID,
+                        approverId: sa.approver_id,
+                        label_vn: `Trả về người duyệt: ${approverLabel}`,
+                        label_en: `Return to approver: ${approverLabel}`
+                    });
+                }
+            } else {
+                // Kịch bản 2: Previous approver bấm Return
+                // - Hiện approver đã APPROVED ở các bước trước họ
+                // - Kèm theo approver(s) của bước hiện tại (READY/IN_PROGRESS) để trả lại cho Current Approver
+                const isBefore = (step.sortOrder < actionStep.sortOrder && saStatus === 'APPROVED');
+                const isCurrentActiveStep = (step.status === 'READY' || step.status === 'IN_PROGRESS');
+
+                if (isBefore || isCurrentActiveStep) {
+                    options.push({
+                        code: isCurrentActiveStep ? "RETURN_TO_CURRENT_APPROVER" : "RETURN_TO_PREVIOUS_APPROVER",
+                        targetStepId: step.ID,
+                        approverId: sa.approver_id,
+                        label_vn: `Trả về người duyệt: ${approverLabel} (${saStatus || step.status})`,
+                        label_en: `Return to approver: ${approverLabel} (${saStatus || step.status})`
+                    });
+                }
             }
-        }
+        });
     });
+
+    // Loại bỏ trùng lặp (theo approverId / step) để UI không hiển thị nhiều lần cùng một người
+    const unique = [];
+    const seen = new Set();
+    options.forEach(opt => {
+        const key = opt.approverId ? `A:${opt.approverId}` : `S:${opt.targetStepId}:${opt.label_en}`;
+        if (!seen.has(key)) { seen.add(key); unique.push(opt); }
+    });
+    options = unique;
 
     return res.status(200).json({
         success: true,
@@ -391,7 +418,7 @@ app.get('/api/pr/:id', (req, res) => {
 // ======================================================
 app.listen(PORT, () => {
     console.log('=======================================================');
-    console.log(`🚀 WORKFLOW MOCK SERVER IS READY FOR LOCAL TESTING`);
-    console.log(`🟢 Listening on Port: ${PORT}`);
+    console.log(`WORKFLOW MOCK SERVER IS READY FOR LOCAL TESTING`);
+    console.log(`Listening on Port: ${PORT}`);
     console.log('=======================================================');
 });

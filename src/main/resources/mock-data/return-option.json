@@ -1,0 +1,84 @@
+{
+  "returnSteps": [
+    {
+      "id": "E008",
+      "stepId": "STEP_1",
+      "stepName": "Supervisor",
+      "sortOrder": 1,
+      "isParallel": false,
+      "approverId": "550e8400-e29b-41d4-a716-446655440008",
+      "fullName": "Cao Thanh Hải",
+      "email": "fixed-term.hong.phamthikim@vn.bosch.com"
+    },
+    {
+      "id": "E010",
+      "stepId": "STEP_2",
+      "stepName": "Section Manager",
+      "sortOrder": 2,
+      "isParallel": false,
+      "approverId": "550e8400-e29b-41d4-a716-446655440010",
+      "fullName": "Nguyễn Hải Long",
+      "email": "fixed-term.hong.phamthikim@vn.bosch.com"
+    },
+    {
+      "id": "E005",
+      "stepId": "STEP_3",
+      "stepName": "Department Manager",
+      "sortOrder": 3,
+      "isParallel": true,
+      "approverId": "550e8400-e29b-41d4-a716-446655440005",
+      "fullName": "Bùi Quốc Hòa",
+      "email": "ly.dinhvan@vn.bosch.com"
+    },
+    {
+      "id": "E999",
+      "stepId": "STEP_3",
+      "stepName": "Department Manager",
+      "sortOrder": 3,
+      "isParallel": true,
+      "approverId": "550e8400-e29b-41d4-a716-446655440999",
+      "fullName": "Phạm Thị Kim Hồng",
+      "email": "fixed-term.hong.phamthikim@vn.bosch.com"
+    },
+    {
+      "id": "E004",
+      "stepId": "STEP_4",
+      "stepName": "Deputy Division Manager",
+      "sortOrder": 4,
+      "isParallel": false,
+      "approverId": "550e8400-e29b-41d4-a716-446655440004",
+      "fullName": "Võ Thị Hương",
+      "email": "fixed-term.hong.phamthikim@vn.bosch.com"
+    },
+    {
+      "id": "E003",
+      "stepId": "STEP_5",
+      "stepName": "Division Manager",
+      "sortOrder": 5,
+      "isParallel": false,
+      "approverId": "550e8400-e29b-41d4-a716-446655440003",
+      "fullName": "Phạm Duy Hùng",
+      "email": "ly.dinhvan@vn.bosch.com"
+    },
+    {
+      "id": "E104",
+      "stepId": "STEP_6",
+      "stepName": "Accountant",
+      "sortOrder": 6,
+      "isParallel": false,
+      "approverId": "550e8400-e29b-41d4-a716-446655440104",
+      "fullName": "Đỗ Văn Linh",
+      "email": "fixed-term.hong.phamthikim@vn.bosch.com"
+    },
+    {
+      "id": "E101",
+      "stepId": "STEP_7",
+      "stepName": "Supervisor",
+      "sortOrder": 7,
+      "isParallel": false,
+      "approverId": "550e8400-e29b-41d4-a716-446655440101",
+      "fullName": "Nguyễn Anh Tuấn",
+      "email": "fixed-term.hong.phamthikim@vn.bosch.com"
+    }
+  ]
+}
