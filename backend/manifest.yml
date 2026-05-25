@@ -3,9 +3,12 @@ applications:
   memory: 512M
   buildpacks:
     - java_buildpack
-  command: java -Dserver.port=$PORT -jar target/workflow-mock-server-1.0.0.jar
-  health-check-type: http
-  health-check-http-endpoint: /
-  default-route: true
+  # Push only the built artifacts directory so the java buildpack finds the JAR
+  path: target/workflow-mock-server-1.0.0.jar
+  # Let the java_buildpack choose the correct launcher. Request Java 11.
   env:
-    PORT: 8082
+    JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: "11.+" } }'
+  health-check-type: http
+  health-check-http-endpoint: /wfstep
+  default-route: true
+  # Do not set PORT here - Cloud Foundry injects PORT at runtime

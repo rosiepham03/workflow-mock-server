@@ -1,0 +1,8 @@
+applications:
+  - name: workflow-ui5-frontend
+    memory: 256M
+    buildpacks:
+      - staticfile_buildpack
+    path: dist
+    env:
+      NPM_CONFIG_LOGLEVEL: error

@@ -5,20 +5,11 @@
         "type": "application",
         "i18n": "i18n/i18n.properties",
         "title": "{{appTitle}}",
-        "description": "{{appDescription}}",
-        "version": "1.0.0",
-        "dataSources": {
-            "workflowRestSource": {
-                "uri": "/",
-                "type": "JSON"
-            }
-        }
+        "description": "Procurement Workflow UI5 Application",
+        "version": "1.0.0"
     },
     "sap.ui": {
         "technology": "UI5",
-        "icons": {
-            "icon": "sap-icon://workflow-tasks"
-        },
         "deviceTypes": {
             "desktop": true,
             "tablet": true,
@@ -33,53 +24,38 @@
             "id": "app"
         },
         "dependencies": {
-            "minUI5Version": "1.120.0",
+            "minUI5Version": "1.84.0",
             "libs": {
-                "sap.m": {},
-                "sap.ui.layout": {},
                 "sap.ui.core": {},
-                "sap.ui.unified": {}
+                "sap.m": {},
+                "sap.ui.layout": {}
             }
         },
         "models": {
             "i18n": {
                 "type": "sap.ui.model.resource.ResourceModel",
                 "settings": {
-                    "bundleUrl": "i18n/i18n.properties",
-                    "supportedLocales": [
-                        ""
-                    ],
-                    "fallbackLocale": ""
+                    "bundleName": "com.workflow.ui5.i18n.i18n"
                 }
-            },
-            "": {
-                "type": "sap.ui.model.json.JSONModel",
-                "dataSource": "workflowRestSource"
             }
-        },
-        "routing": {
-            "config": {
-                "routerClass": "sap.m.routing.Router",
-                "viewType": "XML",
-                "viewPath": "com.workflow.ui5.view",
-                "controlId": "app",
-                "controlAggregation": "pages",
-                "async": true
+        }
+    },
+    "sap.bpa": {
+        "outcomes": {
+            "APPROVE": {
+                "title": "Approve"
             },
-            "routes": [
-                {
-                    "name": "RouteMain",
-                    "pattern": "",
-                    "target": [
-                        "TargetMain"
-                    ]
-                }
-            ],
-            "targets": {
-                "TargetMain": {
-                    "viewId": "MainView",
-                    "viewName": "MainView"
-                }
+            "REJECT": {
+                "title": "Reject"
+            },
+            "RETURN": {
+                "title": "Return"
+            },
+            "REASSIGN": {
+                "title": "Reassign"
+            },
+            "ON_HOLD": {
+                "title": "On Hold"
             }
         }
     }

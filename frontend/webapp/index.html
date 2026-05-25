@@ -1,21 +1,815 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Workflow API Tester</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Procurement Workflow UI | Payment Request Approval</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        html, body {
-            height: 100%;
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
+
         body {
-            background-color: #f4f6f9;
+            background: #f0f2f8;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            padding: 32px 28px;
+            color: #1a2c3e;
+        }
+
+        /* main container */
+        .procurement-dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* header section with breadcrumb style */
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 26px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1e3c72, #2b4e8b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header h1 i {
+            background: none;
+            color: #2c6e9e;
+            background-clip: unset;
+            -webkit-background-clip: unset;
+            font-size: 28px;
+        }
+
+        .badge-workflow {
+            background: #eef2ff;
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1a4d8c;
+            display: inline-block;
+            margin-left: 16px;
+        }
+
+        /* 2-column fluid grid */
+        .grid-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+
+        /* cards */
+        .card-panel {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+            overflow: hidden;
+            margin-bottom: 28px;
+            border: 1px solid #e9edf2;
+        }
+
+        .card-header {
+            padding: 18px 24px 12px 24px;
+            border-bottom: 1px solid #eff2f8;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-header i {
+            font-size: 22px;
+            color: #2b6a9f;
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2e45;
+        }
+
+        .card-body {
+            padding: 20px 24px 24px 24px;
+        }
+
+        /* info grid (payment request details) */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px 24px;
+            background: #fafcff;
+            border-radius: 20px;
+            padding: 6px 0;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7c93;
+        }
+
+        .info-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1e2f3f;
+            word-break: break-word;
+        }
+
+        .amount-highlight {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f5b2e;
+            background: #e9f4ef;
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+
+        .status-approved {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            width: fit-content;
+        }
+
+        /* workflow progress visual */
+        .workflow-steps {
+            margin: 16px 0 8px 0;
+            background: #f8fafd;
+            border-radius: 20px;
+            padding: 20px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .step-track {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            position: relative;
+            margin: 16px 0 4px;
+        }
+
+        .step-node {
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-badge {
+            width: 40px;
+            height: 40px;
+            background: #e2e8f0;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-weight: 700;
+            color: #4a5b6e;
+            transition: all 0.2s;
+        }
+
+        .step-node.completed .step-badge {
+            background: #1f8555;
+            color: white;
+            box-shadow: 0 4px 8px rgba(31, 133, 85, 0.2);
+        }
+
+        .step-node.active .step-badge {
+            background: #e68a2e;
+            color: white;
+            box-shadow: 0 0 0 3px rgba(230, 138, 46, 0.2);
+            transform: scale(1.05);
+        }
+
+        .step-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .step-role {
+            font-size: 11px;
+            color: #6b7a8a;
+            margin-top: 4px;
+        }
+
+        /* Approval progress track */
+        .approval-progress {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 8px;
+            margin-bottom: 12px;
+        }
+
+        .progress-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-block;
+            flex: 0 0 auto;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
+        .progress-connector {
+            height: 4px;
+            flex: 1 1 auto;
+            background: #e6e7eb;
+            border-radius: 2px;
+        }
+
+        .progress-dot.approved { background: #107e3e; }
+        .progress-dot.pending { background: #9ca3af; }
+        .progress-dot.rejected { background: #dc2626; }
+
+        /* Approver card list */
+        .approver-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 12px; }
+        .approver-card { background:#fff; border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(15,23,42,0.04); border:1px solid #eef2f7; }
+        .approver-name { font-weight:700; color:#0b3551; }
+        .approver-role { font-size:12px; color:#6b7a8a; margin-top:6px; }
+        .approver-meta { margin-top:8px; font-size:13px; color:#334155; }
+        .approver-comment { margin-top:8px; font-size:13px; color:#475569; background:#f8fafc; padding:8px; border-radius:8px; }
+        .status-badge { display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; font-weight:600; font-size:13px; }
+        .status-badge.approved { background:#ecfdf3; color:#065f46; }
+        .status-badge.pending { background:#f3f4f6; color:#374151; }
+        .status-badge.rejected { background:#fff1f2; color:#9f1239; }
+
+        /* Step-columns layout: one column per workflow step */
+        .steps-columns { display:flex; gap:12px; align-items:flex-start; margin-top:12px; overflow-x:auto; padding-bottom:6px; }
+        .step-column { background: #ffffff; border-radius:12px; padding:12px; flex:0 0 160px; min-width:140px; max-width:220px; border:1px solid #eef2f7; }
+        .step-column-header { font-weight:700; color:#0b3551; margin-bottom:10px; text-align:center; }
+        .arrow-between { display:flex; align-items:center; justify-content:center; width:40px; }
+        .arrow-svg { width:28px; height:28px; color:#9aa6b6; opacity:0.9; }
+
+        /* action buttons style */
+        .action-group {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .action-btn {
+            padding: 10px 18px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            background: #f1f5f9;
+            color: #1e293b;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-btn i {
+            font-size: 14px;
+        }
+
+        .action-btn.approve {
+            background: #e3f7ec;
+            color: #146b3a;
+            border: 1px solid #b9e6cf;
+        }
+
+        .action-btn.approve:hover {
+            background: #c8eed9;
+        }
+
+        .action-btn.reject {
+            background: #fee9e6;
+            color: #b91c1c;
+            border: 1px solid #fad2cc;
+        }
+
+        .action-btn.return {
+            background: #fff0db;
+            color: #b45309;
+        }
+
+        .action-btn.reassign {
+            background: #e6edfc;
+            color: #1e4a76;
+        }
+
+        .action-btn.onhold {
+            background: #f1e7fe;
+            color: #6b21a5;
+        }
+
+        .action-btn.active-action {
+            outline: 2px solid #2c6e9e;
+            outline-offset: 2px;
+            background: #ffffff;
+        }
+
+        .comment-area {
+            margin-top: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid #cfdee9;
+            padding: 12px 16px;
+            font-family: 'Inter', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .submit-row {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-submit {
+            background: #1e4f7a;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: #0f3e60;
+        }
+
+        /* response console */
+        .console-box {
+            background: #0f1724;
+            border-radius: 20px;
+            padding: 18px;
+            color: #e2e8f0;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            margin-top: 12px;
+            max-height: 380px;
+            overflow: auto;
+        }
+
+        /* apply monospace font to UI5 TextArea console when requested */
+        .consoleMonospace {
+            font-family: 'SF Mono', 'Fira Code', monospace !important;
+        }
+
+        .status-badge-console {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e293b;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+        }
+
+        .clear-btn {
+            background: none;
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            border-radius: 30px;
+            padding: 6px 14px;
+            cursor: pointer;
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        hr {
+            margin: 16px 0;
+            border-color: #eef2f8;
+        }
+
+        .approvers-select {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid #cfdee9;
+            background: white;
+            font-weight: 500;
+        }
+
+        .label-small {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: block;
+            color: #2c3e50;
+        }
+
+        @media (max-width: 950px) {
+            .grid-main {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 20px;
+            }
         }
     </style>
 </head>
-<body class="sapUiBody" id="content">
-    <div data-sap-ui-component data-name="com.workflow.ui5" data-id="container" data-sap-ui-theme="sap_horizon" data-sap-ui-resourceroots='{"com.workflow.ui5": "./"}' data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"></div>
+
+<body>
+    <div class="procurement-dashboard">
+        <div class="page-header">
+            <h1><i class="fas fa-cloud-upload-alt"></i> Online Procurement to Pay <span class="badge-workflow"><i
+                        class="fas fa-code-branch"></i> Workflow Engine · 5 Outcomes</span></h1>
+            <p style="margin-top: 8px; color: #4a627a;">Payment Request ID: <strong>#48865</strong> · Advanced Payment
+                ID: 589946637 · Status: <span class="status-approved"><i class="fas fa-check-circle"></i> Approved
+                    (Workflow Amount)</span></p>
+        </div>
+
+        <div>
+            <!-- Card: Payment Request Overview -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <i class="fas fa-receipt"></i>
+                    <h2>📄 Payment Request Details</h2>
+                </div>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <div class="info-item"><span class="info-label">Request ID</span><span class="info-value">48865
+                                · Advanced: 589946637</span></div>
+                        <div class="info-item"><span class="info-label">Classification</span><span
+                                class="info-value">Cash/Bank/Deduct</span></div>
+                        <div class="info-item"><span class="info-label">Workflow Amount</span><span
+                                class="info-value amount-highlight">20.000.000 VND <i
+                                    class="fas fa-chart-line"></i></span></div>
+                        <div class="info-item"><span class="info-label">Due Date / Expected</span><span
+                                class="info-value">June 23, 2024 (Contract deadline)</span></div>
+                        <div class="info-item"><span class="info-label">Payment Request Date</span><span
+                                class="info-value">August 06, 2024</span></div>
+                        <div class="info-item"><span class="info-label">Process L1/L2/L3</span><span
+                                class="info-value">Direct Goods · Local Direct/Indirect (MSG/Food/Packaging)</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div><span class="info-label">Advance for:</span> <span class="info-value">"Lý do tạm ứng cho
+                            chi phí sản xuất và đóng gói"</span></div>
+                </div>
+            </div>
+
+            <!-- Card: Workflow Progress Timeline -->
+            <div class="card-panel">
+                <div class="card-header">
+                    <i class="fas fa-project-diagram"></i>
+                    <h2>✅ Approval Flow & Step Progress</h2>
+                </div>
+                <div class="card-body">
+                    <div class="workflow-steps" id="workflowVisualization">
+                        <!-- dynamic steps will be injected via JS but static fallback -->
+                    </div>
+                    <div style="margin-top: 4px; background: #f8f9fe; border-radius: 16px; padding: 12px;">
+                        <div class="flex-between"><span class="info-label">Current Step:</span> <strong
+                                id="currentStepLabel">Applicant Review</strong></div>
+                        <div class="flex-between"><span class="info-label">Workflow Amount Approval:</span> <span
+                                class="status-approved">20.000.000 VND · Approved</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Workflow data fetched from backend
+        let fullWorkflowData = null;
+        let stepDefinitions = [];
+        let currentStepIndex = 0;
+        let workflowStatus = "IN_PROGRESS";
+        let onHoldFlag = false;
+        let lastAction = null;
+        let reassignTarget = null;
+
+        function getBaseUrl() {
+            let url = window.location.origin;
+            if (!url || url === 'null' || url === 'file://') url = 'http://localhost:8082';
+            return url.replace(/\/$/, "");
+        }
+
+        async function fetchAndPopulateWorkflow() {
+            const baseUrl = getBaseUrl();
+            try {
+                const resp = await fetch(`${baseUrl}/api/wfstep`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                fullWorkflowData = data;
+
+                // Build stepDefinitions from backend data
+                const steps = Array.isArray(data.workflowSteps) ? data.workflowSteps.slice() : [];
+                steps.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+                stepDefinitions = steps.map(s => {
+                        // Resolve approvers list (handle multiple approvers per step)
+                        var approversList = [];
+                        if (s.approver && typeof s.approver === 'string') {
+                            approversList.push(s.approver);
+                        }
+                        if (s.stepApprovers && Array.isArray(s.stepApprovers) && s.stepApprovers.length > 0) {
+                            s.stepApprovers.forEach(function(a) {
+                                    if (!a) return;
+                                    // Prefer actual actor (proxy handling): check actualApprover, performedBy, actor, then approver
+                                    var name = '';
+                                    if (a.actualApprover && typeof a.actualApprover === 'object') {
+                                        name = a.actualApprover.fullName || a.actualApprover.name || a.actualApprover.employeeID || '';
+                                    }
+                                    if (!name && a.performedBy && typeof a.performedBy === 'object') {
+                                        name = a.performedBy.fullName || a.performedBy.name || a.performedBy.employeeID || '';
+                                    }
+                                    if (!name && a.actor && typeof a.actor === 'object') {
+                                        name = a.actor.fullName || a.actor.name || a.actor.employeeID || '';
+                                    }
+                                    if (!name && typeof a.approver === 'string') {
+                                        name = a.approver;
+                                    }
+                                    if (!name && a.approver && typeof a.approver === 'object') {
+                                        name = a.approver.fullName || a.approver.name || a.approver.employeeID || '';
+                                    }
+                                    if (!name) {
+                                        name = a.actualApproverName || a.actualApproverFullName || a.performedByName || a.approverName || a.approver_id || a.approverId || a.approver || '';
+                                    }
+                                    if (name) approversList.push(name);
+                                });
+                        }
+                        // dedupe and normalize
+                        approversList = approversList.filter(Boolean).map(function(x){return x.toString();});
+                        approversList = approversList.filter(function(v,i,a){return a.indexOf(v)===i;});
+                        var approver = approversList.length > 0 ? approversList[0] : '';
+
+                    let status = (s.status || '').toLowerCase();
+                    if (status === 'completed' || status === 'approved') status = 'completed';
+                    else if (status === 'ready' || status === 'in_progress' || status === 'in-progress' || status === 'inprogress') status = 'active';
+                    else status = 'pending';
+                    return { level: s.levelName || s.level || s.ID || 'Step', approver: approver || 'Unknown', approvers: approversList, status: status, raw: s };
+                });
+
+                // determine currentStepIndex from backend statuses
+                const idx = stepDefinitions.findIndex(s => s.status === 'active');
+                if (idx >= 0) currentStepIndex = idx;
+                else {
+                    const firstNotCompleted = stepDefinitions.findIndex(s => s.status !== 'completed');
+                    currentStepIndex = firstNotCompleted >= 0 ? firstNotCompleted : 0;
+                }
+
+                // update workflowStatus from payload if present
+                if (data.status) workflowStatus = data.status;
+
+                updateWorkflowVisual(stepDefinitions, stepDefinitions[currentStepIndex]);
+
+            } catch (err) {
+                console.error('Failed to load workflow from backend', err);
+                addConsoleLog(`❌ Failed to load workflow: ${err.message}`, true);
+                // fallback: keep existing visual
+                this.updateWorkflowVisual();
+            }
+        }
+
+        // Helper: update UI step visual & currentStepLabel
+        function updateWorkflowVisual(steps, currentStep) {
+            // Current Step label
+            var oCurrentStep = document.getElementById("currentStepLabel");
+            if (oCurrentStep && currentStep) {
+                oCurrentStep.textContent = currentStep.level || currentStep.levelName || "";
+            }
+
+            // Build Approval Progress (dots) and Approver Cards
+            var progressHtml = '<div class="approval-progress">';
+            steps.forEach(function(step, idx) {
+                // derive visual status
+                var raw = step.raw || {};
+                var stepStatusRaw = (raw.status || '').toString().toUpperCase();
+                var visual = 'pending';
+                if (stepStatusRaw === 'COMPLETED' || stepStatusRaw === 'APPROVED') visual = 'approved';
+                else if (stepStatusRaw === 'REJECTED') visual = 'rejected';
+
+                progressHtml += '<span class="progress-dot ' + visual + '" title="' + (step.level || '') + '"></span>';
+                if (idx < steps.length - 1) progressHtml += '<span class="progress-connector"></span>';
+            });
+            progressHtml += '</div>';
+
+            // Build step-columns: one column per step, approvers stacked inside. Insert arrow between columns.
+            var cardsHtml = '<div class="steps-columns">';
+            steps.forEach(function(step, sidx) {
+                var raw = step.raw || {};
+                var levelLabel = step.level || raw.levelName || raw.level || '';
+                var approvers = [];
+                if (Array.isArray(raw.stepApprovers) && raw.stepApprovers.length > 0) {
+                    raw.stepApprovers.forEach(function(a) {
+                        if (!a) return;
+                        // Prefer the actual actor who performed the action (proxy handling)
+                        var name = '';
+                        if (a.actualApprover && typeof a.actualApprover === 'object') {
+                            name = a.actualApprover.fullName || a.actualApprover.name || a.actualApprover.employeeID || '';
+                        }
+                        if (!name && a.performedBy && typeof a.performedBy === 'object') {
+                            name = a.performedBy.fullName || a.performedBy.name || a.performedBy.employeeID || '';
+                        }
+                        if (!name && a.actor && typeof a.actor === 'object') {
+                            name = a.actor.fullName || a.actor.name || a.actor.employeeID || '';
+                        }
+                        if (!name && a.approver && typeof a.approver === 'object') {
+                            name = a.approver.fullName || a.approver.name || a.approver.employeeID || '';
+                        }
+                        if (!name) name = a.actualApproverName || a.actualApproverFullName || a.performedByName || a.approverName || a.approver_id || a.approverId || a.approver || '';
+                        var status = (a.status || raw.status || '').toString().toUpperCase();
+                        var date = a.completeAt || a.complete_at || a.completedAt || '';
+                        var comment = a.comment || a.notes || '';
+                        approvers.push({ name: (name || 'Unknown'), status: status || '', date: date, comment: comment });
+                    });
+                } else if (step.approvers && Array.isArray(step.approvers) && step.approvers.length > 0) {
+                    step.approvers.forEach(function(n){ approvers.push({ name: n, status: (raw.status||'').toString().toUpperCase(), date: '', comment: '' }); });
+                } else {
+                    var fallbackName = step.approver || (raw.approver && (raw.approver.fullName || raw.approver.name)) || 'Unknown';
+                    approvers.push({ name: fallbackName, status: (raw.status||'').toString().toUpperCase(), date: '', comment: '' });
+                }
+
+                cardsHtml += '<div class="step-column">';
+                cardsHtml += '<div class="step-column-header">' + (levelLabel || '') + '</div>';
+                approvers.forEach(function(ap) {
+                    var statusKey = 'pending';
+                    if (ap.status === 'APPROVED' || ap.status === 'COMPLETED') statusKey = 'approved';
+                    if (ap.status === 'REJECTED') statusKey = 'rejected';
+
+                    var statusText = ap.status ? ap.status.charAt(0).toUpperCase() + ap.status.slice(1).toLowerCase() : 'Pending';
+                    var dateText = ap.date ? new Date(ap.date).toLocaleString() : '';
+
+                    cardsHtml += '<div class="approver-card">';
+                    cardsHtml += '<div class="approver-name">' + (ap.name || 'Unknown') + '</div>';
+                    cardsHtml += '<div class="approver-role">' + (levelLabel || '') + '</div>';
+                    cardsHtml += '<div class="approver-meta">';
+                    cardsHtml += '<span class="status-badge ' + statusKey + '">' + statusText + '</span>';
+                    if (dateText) cardsHtml += '<span style="margin-left:8px;color:#6b7280;">' + dateText + '</span>';
+                    cardsHtml += '</div>';
+                    if (ap.comment) cardsHtml += '<div class="approver-comment">' + ap.comment + '</div>';
+                    cardsHtml += '</div>';
+                });
+                cardsHtml += '</div>';
+                if (sidx < steps.length - 1) {
+                    // arrow between columns
+                    cardsHtml += '<div class="arrow-between"><svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></div>';
+                }
+            });
+            cardsHtml += '</div>';
+
+            var oWorkflowContainer = document.getElementById("workflowVisualization");
+            if (oWorkflowContainer) {
+                oWorkflowContainer.innerHTML = progressHtml + cardsHtml;
+            }
+        }
+
+        // Log to console (right panel)
+        function addConsoleLog(message, isError = false) {
+            const consoleDiv = document.querySelector('.console-box') || document.getElementById('responseConsole');
+            if (!consoleDiv) {
+                console.log(message);
+                return;
+            }
+            const timestamp = new Date().toLocaleTimeString();
+            const colorStyle = isError ? "color:#f87171;" : "color:#a5f3c4;";
+            const newLine = document.createElement("div");
+            newLine.innerHTML = `<span style="color:#6c8fb0;">[${timestamp}]</span> <span style="${colorStyle}">${message}</span>`;
+            consoleDiv.appendChild(newLine);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function clearConsole() {
+            const consoleDiv = document.querySelector('.console-box') || document.getElementById('responseConsole');
+            if (consoleDiv) {
+                consoleDiv.innerHTML = `<span style="color:#94a3b8;">>> Console cleared. Ready for new workflow actions.<br></span>`;
+            } else {
+                console.clear && console.clear();
+            }
+            addConsoleLog("Console cleared | 5 outcomes available (APPROVE, REJECT, RETURN, REASSIGN, ON_HOLD)");
+        }
+
+        // Simulate API call (mock)
+        async function submitWorkflowAction(selectedOutcome, comment, selectedApproverName) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    let success = true;
+                    let newStep = currentStepIndex;
+                    let statusMsg = "";
+                    let holdChanged = false;
+                    // Validate based on outcome
+                    if (selectedOutcome === "APPROVE") {
+                        if (currentStepIndex + 1 < stepDefinitions.length) {
+                            newStep = currentStepIndex + 1;
+                            statusMsg = `✅ APPROVED by ${stepDefinitions[currentStepIndex].approver}. Workflow advanced to ${stepDefinitions[newStep].level}.`;
+                            if (newStep === stepDefinitions.length - 1) statusMsg += " Final step reached – pending completion.";
+                        } else {
+                            statusMsg = `✅ FINAL APPROVAL completed! Payment request fully approved.`;
+                            newStep = currentStepIndex;
+                            workflowStatus = "COMPLETED";
+                        }
+                    }
+                    else if (selectedOutcome === "REJECT") {
+                        statusMsg = `❌ REJECTED by ${stepDefinitions[currentStepIndex].approver}. Workflow terminated. Reason: ${comment || "No comment"}`;
+                        workflowStatus = "REJECTED";
+                        newStep = currentStepIndex;
+                        success = true;
+                    }
+                    else if (selectedOutcome === "RETURN") {
+                        if (currentStepIndex > 0) {
+                            newStep = currentStepIndex - 1;
+                            statusMsg = `🔄 RETURNED to previous step: ${stepDefinitions[newStep].level} by ${stepDefinitions[currentStepIndex].approver}. Comment: ${comment}`;
+                        } else {
+                            statusMsg = `⚠️ Cannot RETURN: already at first step.`;
+                            newStep = currentStepIndex;
+                            success = false;
+                        }
+                    }
+                    else if (selectedOutcome === "REASSIGN") {
+                        statusMsg = `👥 REASSIGNED from ${stepDefinitions[currentStepIndex].approver} to ${selectedApproverName}. Workflow transfers responsibility.`;
+                        // update step approver name for current step (preserve same index but change actor)
+                        stepDefinitions[currentStepIndex].approver = selectedApproverName;
+                        var currActorEl = document.getElementById("currentActor");
+                        if (currActorEl) currActorEl.innerText = selectedApproverName;
+                        reassignTarget = selectedApproverName;
+                        newStep = currentStepIndex;
+                    }
+                    else if (selectedOutcome === "ON_HOLD") {
+                        if (onHoldFlag) {
+                            onHoldFlag = false;
+                            statusMsg = `▶️ ON_HOLD released. Workflow resumed at ${stepDefinitions[currentStepIndex].level}.`;
+                            holdChanged = true;
+                        } else {
+                            onHoldFlag = true;
+                            statusMsg = `⏸ ON_HOLD activated by ${stepDefinitions[currentStepIndex].approver}. Workflow paused.`;
+                            holdChanged = true;
+                        }
+                    }
+
+                    if (success && selectedOutcome !== "ON_HOLD" && !onHoldFlag && workflowStatus !== "REJECTED" && workflowStatus !== "COMPLETED") {
+                        currentStepIndex = newStep;
+                    }
+                    if (selectedOutcome === "REJECT") workflowStatus = "REJECTED";
+                    if (selectedOutcome === "APPROVE" && currentStepIndex === stepDefinitions.length && workflowStatus !== "COMPLETED") workflowStatus = "COMPLETED";
+
+                    if (selectedOutcome === "ON_HOLD" && !holdChanged) {
+                        // toggle case
+                        onHoldFlag = !onHoldFlag;
+                        statusMsg = onHoldFlag ? "⏸ ON_HOLD applied." : "▶️ Resume from ON_HOLD";
+                    }
+
+                    if (workflowStatus === "REJECTED") onHoldFlag = false;
+
+                    updateWorkflowVisual(stepDefinitions, stepDefinitions[currentStepIndex]);
+                    resolve({ success, message: statusMsg, newStepIndex: currentStepIndex, workflowStatus, onHold: onHoldFlag });
+                }, 200);
+            });
+        }
+
+        var clearBtn = document.getElementById("clearConsoleBtn") || document.querySelector('.clear-btn');
+        if (clearBtn) clearBtn.addEventListener("click", clearConsole);
+        // Load workflow from backend and render
+        fetchAndPopulateWorkflow();
+        addConsoleLog("🚀 UI ready | 5 outcomes (APPROVE, REJECT, RETURN, REASSIGN, ON_HOLD) integrated with step simulation. Current step: Account Payable.");
+        addConsoleLog("📌 Use REASSIGN to transfer current task to any approver in the dropdown.");
+        addConsoleLog("📌 ON_HOLD toggles workflow pause/resume.");
+    </script>
 </body>
+
 </html>

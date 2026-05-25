@@ -1,11 +1,16 @@
 specVersion: "3.0"
+
 metadata:
-  name: frontend
+  name: workflow-ui5-tester
+
 type: application
+
 server:
   customMiddleware:
+
     - name: ui5-middleware-simpleproxy
       afterMiddleware: compression
-      mountPath: /
+      mountPath: /api
+
       configuration:
-        baseUri: "https://port8082-workspaces-ws-z643x.us10.trial.applicationstudio.cloud.sap"
+        baseUri: http://localhost:8082

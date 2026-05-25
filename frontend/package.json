@@ -14,11 +14,11 @@
     "@sap/ux-ui5-tooling": "1",
     "@ui5/cli": "^4.0.33",
     "eslint": "^10",
-    "ui5-middleware-simpleproxy": "^3.7.0"
+    "ui5-middleware-simpleproxy": "^3.7.1"
   },
   "scripts": {
-    "start": "ui5 serve --port 8081 --open index.html",
-    "build": "ui5 build --clean-dest --dest dist"
+    "start": "npx -p @ui5/cli ui5 serve --config=ui5.yaml --port 8080 --open index.html",
+    "build": "npx -p @ui5/cli ui5 build --config=ui5.yaml --clean-dest --dest dist"
   },
   "sapuxLayer": "CUSTOMER_BASE",
   "sapux": true

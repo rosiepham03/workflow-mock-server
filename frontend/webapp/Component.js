@@ -39,7 +39,7 @@ sap.ui.define([
 
             // Tạo model cho config
             var oConfigModel = new JSONModel({
-                baseUrl: "https://port8082-workspaces-ws-z643x.us10.trial.applicationstudio.cloud.sap"
+                baseUrl: "http://localhost:8082"
             });
             this.setModel(oConfigModel, "config");
 
