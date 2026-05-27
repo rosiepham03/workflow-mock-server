@@ -9,18 +9,25 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReturnOptionDTO {
-    @JsonProperty("code")
-    private String code;
-    
-    @JsonProperty("targetStepId")
-    private String targetStepId;
-    
-    @JsonProperty("approverId")
-    private String approverId;
-    
-    @JsonProperty("label_vn")
-    private String labelVn;
-    
-    @JsonProperty("label_en")
-    private String labelEn;
+
+    @JsonProperty("name")
+    private String name;
+
+    @JsonProperty("email")
+    private String email;
+
+    @JsonProperty("order")
+    private Integer order;
+
+    @JsonProperty("step_ID")
+    private String stepId;
+
+    @JsonProperty("user_ID")
+    private String userId;
+
+    @JsonProperty("position")
+    private String position;
+
+    @JsonProperty("department")
+    private String department; // null được
 }

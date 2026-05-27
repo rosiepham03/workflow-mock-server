@@ -318,28 +318,26 @@
             <div class="left-column">
                 <!-- 1. Xem cấu trúc dữ liệu -->
                 <div class="card">
-                    <h2>🔍 1. Fetch & View Data</h2>
+                    <h2>1. Fetch & View Data</h2>
                     <div class="endpoint-row">
                         <span><span class="badge bg-get">GET</span> /wfstep (Sơ đồ Workflow)</span>
-                        <button onclick="callApi('/wfstep', 'GET')">Bắn Request</button>
+                        <button onclick="callApi('/wfstep', 'GET')">GET</button>
                     </div>
                     <div class="endpoint-row">
                         <span><span class="badge bg-get">GET</span> /api/pr/{{prId}} (Chi tiết Payment Request)</span>
-                        <button onclick="callApi(`/api/pr/550e8400-e29b-41d4-a716-446655440003`, 'GET')">Bắn
-                            Request</button>
+                        <button onclick="callApi(`/api/pr/550e8400-e29b-41d4-a716-446655440003`, 'GET')">GET</button>
                     </div>
                     <div class="endpoint-row">
                         <span><span class="badge bg-get">GET</span> /api/pr/{{prId}}/history-steps (Lịch sử
                             duyệt)</span>
                         <button
-                            onclick="callApi(`/api/pr/550e8400-e29b-41d4-a716-446655440003/history-steps`, 'GET')">Bắn
-                            Request</button>
+                            onclick="callApi(`/api/pr/550e8400-e29b-41d4-a716-446655440003/history-steps`, 'GET')">GET</button>
                     </div>
                 </div>
 
-                <!-- 2. Tính năng State Machine (Trọng tâm) - ĐÃ NÂNG CẤP -->
+                <!-- 2. Tính năng State Machine -->
                 <div class="card">
-                    <h2>⚡ 2. State Machine Action (POST /api/workflow/WorkflowSteps/:id)</h2>
+                    <h2>2. State Machine Action (POST /api/workflow/WorkflowSteps/:id)</h2>
                     <div class="action-zone">
                         <div>
                             <label>Target Step ID:</label>
@@ -356,7 +354,7 @@
                             </select>
                             <span id="stepLoadingIndicator" class="loading"></span>
                             <small style="display: block; color: #666; margin-top: 5px;">
-                                ⚠️ Workflow chạy tuần tự từ Step 1 → Step 8. Step hiện tại được tự động xác định dựa
+                                Workflow chạy tuần tự từ Step 1 → Step 8. Step hiện tại được tự động xác định dựa
                                 trên trạng thái.
                             </small>
                         </div>
@@ -394,7 +392,7 @@
                             <textarea id="smComment" rows="2">Xử lý hồ sơ chứng từ trên hệ thống.</textarea>
                         </div>
                         <button style="background-color: var(--success);" onclick="triggerStateMachine()">Gửi lệnh State
-                            Machine 🚀</button>
+                            Machine </button>
                     </div>
                 </div>
             </div>
@@ -404,7 +402,7 @@
                 <div class="card"
                     style="position: sticky; top: 20px; flex-grow: 1; display: flex; flex-direction: column;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h2 style="margin:0; border:none;">🖥️ Response Console</h2>
+                        <h2 style="margin:0; border:none;">Response Console</h2>
                         <button style="background:#6c757d; padding:4px 10px; font-size:12px;"
                             onclick="clearConsole()">Xóa Log</button>
                     </div>
@@ -488,7 +486,7 @@
             // Hiển thị thông tin step
             const approverCount = selectedStep.stepApprovers?.length || 0;
             const indicator = document.getElementById('stepLoadingIndicator');
-            indicator.innerHTML = `✅ Step có ${approverCount} người duyệt.`;
+            indicator.innerHTML = `Step có ${approverCount} người duyệt.`;
         }
 
         // HÀM TỰ ĐỘNG ĐIỀN DANH SÁCH APPROVER VÀO DROPDOWN
@@ -514,7 +512,7 @@
             const approverCount = selectedStep.stepApprovers.length;
             if (approverCount > 1) {
                 warningDiv.style.display = 'inline-block';
-                warningDiv.innerHTML = `⚠️ Step này có ${approverCount} người duyệt (Parallel: ${selectedStep.isParallel ? 'Có' : 'Không'}). Hãy chọn đúng người!`;
+                warningDiv.innerHTML = `Step này có ${approverCount} người duyệt (Parallel: ${selectedStep.isParallel ? 'Có' : 'Không'}). Hãy chọn đúng người!`;
             } else {
                 warningDiv.style.display = 'none';
             }
@@ -559,7 +557,6 @@
             }
         }
 
-        // Xử lý khi thay đổi hành động
         // Xử lý khi thay đổi hành động (chỉ đơn giản là cập nhật UI, không cần show/hide target field)
         function handleActionChange() {
             const action = document.getElementById('smStatusCode').value;
@@ -616,7 +613,7 @@
 
         //         // Thêm cảnh báo nếu step bị disable do status
         //         if (step.status !== 'READY' && step.status !== 'IN_PROGRESS') {
-        //             option.textContent += ' ⚠️ (Không sẵn sàng)';
+        //             option.textContent += ' (Không sẵn sàng)';
         //         }
 
         //         stepSelect.appendChild(option);
@@ -760,102 +757,39 @@
             const modal = document.getElementById('actionModal');
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
+            const approverId = document.getElementById('smApproverId').value;
 
-            modalTitle.innerText = '📤 Chọn bước và người duyệt cần trả về';
-
-            // Lấy danh sách các step phía trước
-            const previousSteps = getPreviousSteps(currentStepId);
-
-            let html = '<label>Chọn bước cần trả về và người duyệt cụ thể:</label>';
-            html += '<div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 10px;">';
-
-            // 1. Option trả về Requester
-            html += `
-        <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-            <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="radio" name="returnTarget" value="requester" data-step-id="" data-approver-id="" data-approver-name="Requester">
-                <span style="margin-left: 10px;">
-                    <strong>📋 Trả về cho người tạo (Requester)</strong>
-                    <br><small>Đặt lại workflow về trạng thái ban đầu</small>
-                </span>
-            </label>
-        </div>
-    `;
-
-            // 2. Duyệt từng step và từng approver
-            previousSteps.forEach(step => {
-                const stepName = step.levelName || 'Step';
-                const approvers = step.stepApprovers || [];
-
-                // Nếu step có nhiều approver, hiển thị từng người riêng
-                if (approvers.length === 0) {
-                    html += `
-                <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-radius: 6px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="returnTarget" value="step" data-step-id="${step.ID}" data-approver-id="" data-approver-name="">
-                        <span style="margin-left: 10px;">
-                            <strong>${stepName}</strong>
-                            <br><small>Order: ${step.sortOrder} (Không có người duyệt cụ thể)</small>
-                        </span>
-                    </label>
-                </div>
-            `;
-                } else {
-                    // QUAN TRỌNG: Hiển thị TỪNG approver riêng biệt
-                    approvers.forEach(approver => {
-                        // Ưu tiên proxyApprover nếu có
-                        const isProxy = approver.proxyApprover_id && approver.proxyApprover && approver.proxyApprover.id;
-                        const approverInfo = isProxy ? approver.proxyApprover : approver.approver;
-                        const approverId = isProxy ? approver.proxyApprover.id : approver.approver_id;
-                        const approverName = approverInfo?.fullName || 'Unknown';
-                        const approverEmail = approverInfo?.email || '';
-                        const proxyLabel = isProxy ? ' (Ủy quyền)' : '';
-                        const approverStatus = approver.status || 'N/A';
-
-                        // Mỗi approver là 1 radio button riêng
-                        html += `
-                    <div style="margin-bottom: 15px; padding: 10px; background: #e8f4f8; border-radius: 6px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="radio" name="returnTarget" 
-                                   value="approver" 
-                                   data-step-id="${step.ID}" 
-                                   data-approver-id="${approverId}"
-                                   data-approver-name="${approverName}">
-                            <span style="margin-left: 10px;">
-                                <strong>${stepName}</strong> → ${approverName}${proxyLabel}
-                                <br><small>
-                                    Order: ${step.sortOrder} | 
-                                    Email: ${approverEmail || 'N/A'} | 
-                                    Trạng thái: ${approverStatus}
-                                </small>
-                            </span>
-                        </label>
-                    </div>
-                `;
-                    });
-                }
-            });
-
-            // Nếu không có step nào phía trước
-            if (previousSteps.length === 0 && !fullWorkflowData?.requester_id) {
-                modalBody.innerHTML = `
-            <p>⚠️ Không có bước duyệt nào phía trước.</p>
-            <p>Bạn có muốn <strong>trả về cho người tạo (Requester)</strong> không?</p>
-            <input type="hidden" id="returnTargetStepId" value="">
-            <input type="hidden" id="returnTargetApproverId" value="">
-        `;
-                modal.style.display = 'flex';
-                return;
-            }
-
-            html += '</div>';
-            html += '<small style="display: block; margin-top: 10px; color: #666;">⚠️ Chọn đúng bước và người duyệt cần trả về.</small>';
-
-            modalBody.innerHTML = html;
+            modalTitle.innerText = 'Chọn bước và người duyệt cần trả về';
+            modalBody.innerHTML = '<p class="loading">Đang tải danh sách hợp lệ từ BE...</p>';
             modal.style.display = 'flex';
+
+            try {
+                // Gọi BE tính toán hộ, FE không tự ý filter sortOrder nữa
+                const baseUrl = getBaseUrl();
+                const response = await fetch(`${baseUrl}/api/workflow/return-options?stepId=${currentStepId}&approverId=${approverId}`);
+                const options = await response.json();
+
+                let html = '<label>Chọn đích đến hợp lệ (Do BE phê duyệt):</label>';
+                html += '<div style="max-height: 400px; overflow-y: auto; padding: 10px;">';
+
+                options.forEach((opt, index) => {
+                    html += `
+                <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="returnTarget" value="${opt.targetStepId || ''}" 
+                               data-approver-id="${opt.targetApproverId || ''}" ${index === 0 ? 'checked' : ''}>
+                        <span style="margin-left: 10px;"><strong>${opt.labelVn}</strong></span>
+                    </label>
+                </div>`;
+                });
+                html += '</div>';
+                modalBody.innerHTML = html;
+
+            } catch (error) {
+                modalBody.innerHTML = `<p style="color:var(--danger)">Lỗi tải dữ liệu kiểm soát từ BE: ${error.message}</p>`;
+            }
         }
 
-        // Hiển thị modal chọn user để REASSIGN
         // Hiển thị modal chọn user để REASSIGN
         async function showReassignModal() {
             const modal = document.getElementById('actionModal');
@@ -873,7 +807,7 @@
                 const currentRole = getCurrentRole();
                 const currentApproverId = document.getElementById('smApproverId').value;
 
-                console.log('🔍 Getting reassignees for role:', currentRole, 'approverId:', currentApproverId);
+                console.log('Getting reassignees for role:', currentRole, 'approverId:', currentApproverId);
 
                 // Gọi API lấy danh sách người cùng role
                 const response = await fetch(`${baseUrl}/api/workflow/get-valid-reassignees`, {
@@ -892,7 +826,7 @@
 
                 if (users.length === 0) {
                     modalBody.innerHTML = `
-                <p>⚠️ Không tìm thấy người dùng nào cùng cấp để ủy quyền.</p>
+                <p>Không tìm thấy người dùng nào cùng cấp để ủy quyền.</p>
                 <p><small>Vai trò hiện tại: <strong>${currentRole}</strong></small></p>
                 <p><small>Gợi ý: Kiểm tra lại dữ liệu users.json hoặc role mapping.</small></p>
             `;
@@ -914,14 +848,14 @@
 
                 html += `</select>`;
                 html += `<small style="display: block; margin-top: 10px; color: #666;">
-                    ⚠️ Chỉ hiển thị những người cùng cấp (${currentRole}) và đang hoạt động.
+                    Chỉ hiển thị những người cùng cấp (${currentRole}) và đang hoạt động.
                 </small>`;
 
                 modalBody.innerHTML = html;
 
             } catch (error) {
                 console.error('Error loading reassignees:', error);
-                modalBody.innerHTML = `<p>❌ Lỗi tải danh sách: ${error.message}</p>`;
+                modalBody.innerHTML = `<p>Lỗi tải danh sách: ${error.message}</p>`;
             }
         }
 
@@ -946,7 +880,7 @@
             const currentStep = steps.find(s => s.ID === currentStepId);
             if (!currentStep) return [];
 
-            console.log('🔍 Current step:', currentStep.levelName, 'Order:', currentStep.sortOrder);
+            console.log('Current step:', currentStep.levelName, 'Order:', currentStep.sortOrder);
 
             // Lấy các step có sortOrder nhỏ hơn và đã APPROVED/COMPLETED
             const previousSteps = steps.filter(s => {
@@ -1050,7 +984,7 @@
             }
             // REJECT, APPROVE, ON_HOLD không cần thêm field gì
 
-            console.log('📤 Sending payload:', payload);
+            console.log('Sending payload:', payload);
 
             // Gọi API
             await callApi(`/api/workflow/WorkflowSteps/${action.stepId}`, 'POST', payload);
@@ -1085,10 +1019,10 @@
         // HÀM CHÍNH: Tự động tải workflow và xác định step hiện tại
         async function fetchAndPopulateWorkflow() {
             const baseUrl = getBaseUrl();
-            console.log('🔍 Base URL:', baseUrl);
+            console.log('Base URL:', baseUrl);
 
             if (!baseUrl) {
-                console.error('❌ Không có Base URL');
+                console.error('Không có Base URL');
                 updateConsole('ERROR', { message: "Vui lòng nhập Base URL trước khi tải Workflow." });
                 return;
             }
@@ -1100,7 +1034,7 @@
 
             try {
                 const url = `${baseUrl}/wfstep`;
-                console.log('🌐 Gọi API:', url);
+                console.log('Gọi API:', url);
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -1110,7 +1044,7 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
                 const data = await response.json();
-                console.log('✅ Dữ liệu nhận được:', data);
+                console.log('Dữ liệu nhận được:', data);
 
                 fullWorkflowData = data;
 
@@ -1121,13 +1055,13 @@
                 } else if (data && Array.isArray(data)) {
                     steps = data;
                 } else {
-                    console.warn("⚠️ Cấu trúc dữ liệu không như mong đợi:", Object.keys(data));
+                    console.warn("Cấu trúc dữ liệu không như mong đợi:", Object.keys(data));
                     steps = [];
                 }
 
                 if (steps.length === 0) {
-                    stepSelect.innerHTML = '<option value="">❌ Không tìm thấy Step nào</option>';
-                    indicator.innerText = '❌ Không có dữ liệu step.';
+                    stepSelect.innerHTML = '<option value="">Không tìm thấy Step nào</option>';
+                    indicator.innerText = 'Không có dữ liệu step.';
                     return;
                 }
 
@@ -1152,7 +1086,7 @@
                 stepSelect.appendChild(option);
                 stepSelect.disabled = true; // VÔ HIỆU HÓA dropdown - không cho chọn
 
-                indicator.innerHTML = `📍 Step hiện tại: ${activeStep.levelName} (Bước ${activeStep.sortOrder}/${steps.length}) - Trạng thái: ${activeStep.status}`;
+                indicator.innerHTML = `Step hiện tại: ${activeStep.levelName} (Bước ${activeStep.sortOrder}/${steps.length}) - Trạng thái: ${activeStep.status}`;
 
                 // Lưu lại danh sách steps và step hiện tại
                 fullWorkflowData.workflowSteps = steps;
@@ -1165,9 +1099,9 @@
                 updateWorkflowProgress(steps, activeStep);
 
             } catch (error) {
-                console.error('❌ Lỗi khi tải workflow:', error);
-                stepSelect.innerHTML = '<option value="">❌ Lỗi tải dữ liệu</option>';
-                indicator.innerText = `❌ Lỗi: ${error.message}`;
+                console.error('Lỗi khi tải workflow:', error);
+                stepSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+                indicator.innerText = `Lỗi: ${error.message}`;
                 updateConsole('ERROR', {
                     message: `Không thể tải workflow: ${error.message}`,
                     url: `${baseUrl}/wfstep`
@@ -1185,8 +1119,8 @@
 
             let progressHtml = `
         <div style="margin-top: 10px; padding: 10px; background: #e8f4f8; border-radius: 6px; font-size: 13px;">
-            <strong>📊 Tiến trình Workflow:</strong><br>
-            ✅ Đã duyệt: ${completedSteps.length}/${total} bước<br>
+            <strong>Tiến trình Workflow:</strong><br>
+            Đã duyệt: ${completedSteps.length}/${total} bước<br>
             🔄 Đang ở: ${currentStep.levelName} (Bước ${currentOrder}/${total})<br>
     `;
 
@@ -1223,7 +1157,7 @@
 
             if (action === 'REJECT') {
                 // Hiển thị cảnh báo xác nhận
-                const confirmReject = confirm('⚠️ CẢNH BÁO: Hành động REJECT sẽ KẾT THÚC toàn bộ workflow và không thể khôi phục. Bạn có chắc chắn muốn từ chối?');
+                const confirmReject = confirm('CẢNH BÁO: Hành động REJECT sẽ KẾT THÚC toàn bộ workflow và không thể khôi phục. Bạn có chắc chắn muốn từ chối?');
                 if (!confirmReject) {
                     // Nếu không xác nhận, chuyển lại thành APPROVE
                     document.getElementById('smStatusCode').value = 'APPROVE';
@@ -1255,7 +1189,7 @@
                 const data = await response.json();
 
                 updateConsole(response.status, {
-                    message: "✅ Kết nối thành công!",
+                    message: "Kết nối thành công!",
                     status: response.status,
                     hasWorkflowSteps: !!data?.workflowSteps,
                     stepCount: data?.workflowSteps?.length || 0,
@@ -1266,7 +1200,7 @@
 
             } catch (error) {
                 updateConsole('ERROR', {
-                    message: "❌ Không thể kết nối đến server",
+                    message: "Không thể kết nối đến server",
                     error: error.message,
                     url: `${baseUrl}/wfstep`,
                     suggestions: [

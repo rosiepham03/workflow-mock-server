@@ -18,7 +18,9 @@
   },
   "scripts": {
     "start": "npx -p @ui5/cli ui5 serve --config=ui5.yaml --port 8080 --open index.html",
-    "build": "npx -p @ui5/cli ui5 build --config=ui5.yaml --clean-dest --dest dist"
+    "build": "npx -p @ui5/cli ui5 build --config=ui5.yaml --clean-dest --dest dist",
+    "zip": "cd dist && zip -r ../com.workflow.ui5.zip . && cd ..",
+    "build:mta": "npm run build && npm run zip"
   },
   "sapuxLayer": "CUSTOMER_BASE",
   "sapux": true

@@ -1,0 +1,18 @@
+{
+  "welcomeFile": "/comworkflowui5/index.html",
+  "authenticationMethod": "none",
+  "routes": [
+    {
+      "source": "^/comworkflowui5/(.*)$",
+      "target": "$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "none"
+    },
+    {
+      "source": "^/api/(.*)$",
+      "target": "/api/$1",
+      "destination": "workflow-backend-dest",
+      "authenticationType": "none"
+    }
+  ]
+}

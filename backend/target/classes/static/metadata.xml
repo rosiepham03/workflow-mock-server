@@ -1,16 +1,126 @@
 <?xml version="1.0" encoding="utf-8"?>
-<edmx:Edmx Version="1.0" xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx">
-    <edmx:DataServices m:DataServiceVersion="2.0" m:MaxDataServiceVersion="3.0" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata">
-        <Schema Namespace="MockService" xmlns="http://schemas.microsoft.com/ado/2008/09/edm">
-            <EntityType Name="DummyEntityType">
-                <Key>
-                    <PropertyRef Name="ID" />
-                </Key>
-                <Property Name="ID" Type="Edm.String" Nullable="false" />
-            </EntityType>
-            <EntityContainer Name="MockContainer" m:IsDefaultEntityContainer="true">
-                <EntitySet Name="DummyEntity" EntityType="MockService.DummyEntityType" />
-            </EntityContainer>
-        </Schema>
-    </edmx:DataServices>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:DataServices>
+    <Schema Namespace="WorkflowService" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+
+      <ComplexType Name="UserDTO">
+        <Property Name="id" Type="Edm.String"/>
+        <Property Name="employeeID" Type="Edm.String"/>
+        <Property Name="fullName" Type="Edm.String"/>
+        <Property Name="email" Type="Edm.String"/>
+        <Property Name="role" Type="Edm.String"/>
+        <Property Name="status" Type="Edm.String"/>
+      </ComplexType>
+
+      <ComplexType Name="StepApproverDTO">
+        <Property Name="approverId" Type="Edm.String"/>
+        <Property Name="status" Type="Edm.String"/>
+        <Property Name="comment" Type="Edm.String"/>
+        <Property Name="completeAt" Type="Edm.String"/>
+        <Property Name="modifiedAt" Type="Edm.String"/>
+        <Property Name="modifiedBy" Type="Edm.String"/>
+        <Property Name="actualApproverId" Type="Edm.String"/>
+        <Property Name="approver" Type="WorkflowService.UserDTO"/>
+      </ComplexType>
+
+      <ComplexType Name="WorkflowStepDTO">
+        <Property Name="id" Type="Edm.String"/>
+        <Property Name="levelName" Type="Edm.String"/>
+        <Property Name="status" Type="Edm.String"/>
+        <Property Name="sortOrder" Type="Edm.Int32"/>
+        <Property Name="isParallel" Type="Edm.Boolean"/>
+        <Property Name="isActiveEntity" Type="Edm.Boolean"/>
+        <Property Name="completeAt" Type="Edm.String"/>
+        <Property Name="modifiedAt" Type="Edm.String"/>
+        <Property Name="modifiedBy" Type="Edm.String"/>
+        <Property Name="stepApprovers" Collection="true" Type="WorkflowService.StepApproverDTO"/>
+      </ComplexType>
+
+      <ComplexType Name="WorkflowDTO">
+        <Property Name="id" Type="Edm.String"/>
+        <Property Name="documentId" Type="Edm.String"/>
+        <Property Name="status" Type="Edm.String"/>
+        <Property Name="workflowSteps" Collection="true" Type="WorkflowService.WorkflowStepDTO"/>
+      </ComplexType>
+
+      <ComplexType Name="ReturnOption">
+        <Property Name="code" Type="Edm.String"/>
+        <Property Name="targetStepId" Type="Edm.String"/>
+        <Property Name="targetApproverId" Type="Edm.String"/>
+        <Property Name="labelVn" Type="Edm.String"/>
+      </ComplexType>
+
+      <ComplexType Name="HistoryLogEntry">
+        <Property Name="step" Type="Edm.String"/>
+        <Property Name="approver" Type="Edm.String"/>
+        <Property Name="status" Type="Edm.String"/>
+        <Property Name="comment" Type="Edm.String"/>
+        <Property Name="timestamp" Type="Edm.String"/>
+      </ComplexType>
+
+      <ComplexType Name="ActionSuccessResponse">
+        <Property Name="success" Type="Edm.Boolean"/>
+        <Property Name="message" Type="Edm.String"/>
+      </ComplexType>
+
+      <EntityType Name="PaymentRequest">
+        <Key>
+          <PropertyRef Name="id"/>
+        </Key>
+        <Property Name="id" Type="Edm.String" Nullable="false"/>
+        <Property Name="status" Type="Edm.String"/>
+        <Property Name="current_step" Type="Edm.String"/>
+        <Property Name="history_log" Collection="true" Type="WorkflowService.HistoryLogEntry"/>
+      </EntityType>
+
+      <Function Name="getWorkflowData" IsBound="false">
+        <ReturnType Type="WorkflowService.WorkflowDTO"/>
+      </Function>
+
+      <Function Name="getReturnOptions" IsBound="false">
+        <Parameter Name="stepId" Type="Edm.String" Nullable="false"/>
+        <Parameter Name="approverId" Type="Edm.String" Nullable="false"/>
+        <ReturnType Collection="true" Type="WorkflowService.ReturnOption"/>
+      </Function>
+
+      <Action Name="updateWorkflowStepStatus" IsBound="false">
+        <Parameter Name="id" Type="Edm.String" Nullable="false"/>
+        <Parameter Name="statusCode" Type="Edm.String" Nullable="false"/> <Parameter Name="actionBy" Type="Edm.String"/>
+        <Parameter Name="approverId" Type="Edm.String"/>
+        <Parameter Name="comment" Type="Edm.String"/>
+        <Parameter Name="targetId" Type="Edm.String"/>
+        <Parameter Name="targetApproverId" Type="Edm.String"/>
+        <ReturnType Type="WorkflowService.ActionSuccessResponse"/>
+      </Action>
+
+      <Function Name="getWorkflowStep" IsBound="false">
+        <Parameter Name="id" Type="Edm.String" Nullable="false"/>
+        <ReturnType Type="WorkflowService.WorkflowStepDTO"/>
+      </Function>
+
+      <Action Name="getValidReassignees" IsBound="false">
+        <Parameter Name="current_approver_id" Type="Edm.String" Nullable="false"/>
+        <Parameter Name="current_role" Type="Edm.String" Nullable="false"/>
+        <ReturnType Collection="true" Type="WorkflowService.UserDTO"/>
+      </Action>
+
+      <Function Name="getPRHistorySteps" IsBound="false">
+        <Parameter Name="id" Type="Edm.String" Nullable="false"/>
+        <ReturnType Collection="true" Type="WorkflowService.HistoryLogEntry"/>
+      </Function>
+
+      <EntityContainer Name="Container">
+        <EntitySet Name="PaymentRequests" EntityType="WorkflowService.PaymentRequest"/>
+
+        <FunctionImport Name="getFullWorkflow" Function="WorkflowService.getWorkflowData"/>
+        <FunctionImport Name="getReturnOptions" Function="WorkflowService.getReturnOptions"/>
+        <FunctionImport Name="getWorkflowStep" Function="WorkflowService.getWorkflowStep"/>
+        <FunctionImport Name="getPRHistorySteps" Function="WorkflowService.getPRHistorySteps"/>
+        
+        <ActionImport Name="updateWorkflowStepStatus" Action="WorkflowService.updateWorkflowStepStatus"/>
+        <ActionImport Name="getValidReassignees" Action="WorkflowService.getValidReassignees"/>
+      </EntityContainer>
+
+    </Schema>
+  </edmx:DataServices>
 </edmx:Edmx>

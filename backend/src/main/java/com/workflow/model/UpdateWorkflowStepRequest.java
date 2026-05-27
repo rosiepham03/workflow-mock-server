@@ -23,4 +23,7 @@ public class UpdateWorkflowStepRequest {
     
     @JsonProperty("targetId")
     private String targetId;
+
+    @JsonProperty("targetApproverId")
+    private String targetApproverId;
 }

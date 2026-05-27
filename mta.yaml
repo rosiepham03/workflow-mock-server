@@ -1,38 +1,83 @@
 _schema-version: "3.2"
 ID: workflow-mock-server
-version: 1.0.0
+version: 1.0.1
 
 modules:
+  # ==================== BACKEND ====================
+  - name: workflow-backend
+    type: java
+    path: backend
+    provides:
+      - name: backend-api
+        properties:
+          url: ${default-url}
+    build-parameters:
+      builder: custom
+      commands:
+        - mvn clean package -DskipTests
+      target-path: .
+      build-result: target/*.jar
 
+  # ==================== UI5 - BUILD & ZIP ====================
   - name: workflow-ui
     type: html5
     path: frontend
-    parameters:
-      disk-quota: 256M
-      memory: 256M
-
     build-parameters:
       builder: custom
       commands:
         - npm install
-        - npm run build
+        - npm run build:mta        # ← build + zip
+      build-result: .              # ← zip nằm ở frontend/, không phải dist/
       supported-platforms: []
+    parameters:
+      no-route: true
+      no-source: true
 
+  # ==================== HTML5 CONTENT DEPLOYER ====================
+  - name: workflow-app-content
+    type: com.sap.application.content
+    path: .
+    requires:
+      - name: html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - name: workflow-ui
+          artifacts:
+            - com.workflow.ui5.zip   # ← khớp với tên zip tạo ra ở trên
+          target-path: resources/
+
+  # ==================== MANAGED APP ROUTER ====================
+  - name: workflow-approuter
+    type: approuter.nodejs
+    path: approuter
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
     requires:
       - name: html5-repo-runtime
-
-  - name: workflow-backend
-    type: java
-    path: backend
-
-    build-parameters:
-      builder: maven
-      build-result: target/*.jar
+      - name: workflow-destination
+    properties:
+      TENANT_HOST_PATTERN: "^(.*)-${default-uri}"
 
 resources:
+  - name: html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
 
   - name: html5-repo-runtime
     type: org.cloudfoundry.managed-service
     parameters:
       service: html5-apps-repo
       service-plan: app-runtime
+
+  - name: workflow-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite

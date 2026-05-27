@@ -15,19 +15,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequestMapping("/")
-@CrossOrigin(
-    originPatterns = "*",
-    allowedHeaders = "*",
-    exposedHeaders = "*",
-    methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS},
-    allowCredentials = "true"
-)
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*", exposedHeaders = "*", methods = { RequestMethod.GET,
+        RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS }, allowCredentials = "true")
 public class WorkflowController {
 
     @Autowired
     private WorkflowDataService workflowDataService;
 
-    // Thêm method này vào WorkflowController.java
     private String mapLevelToRole(String levelName) {
         if (levelName == null)
             return "Supervisor";
@@ -61,6 +55,44 @@ public class WorkflowController {
     // 2. DYNAMIC RETURN OPTIONS
     // GET /returnoption?stepId=...&approverId=...
     // ======================================================
+    @GetMapping("/api/workflow/return-options")
+    public ResponseEntity<?> getReturnOptions(
+            @RequestParam String stepId,
+            @RequestParam String approverId) {
+
+        log.info("[BE LOG] Tính toán danh sách Return hợp lệ cho step: {}", stepId);
+
+        WorkflowStepDTO actionStep = workflowDataService.findWorkflowStep(stepId);
+        if (actionStep == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Không tìm thấy Step hiện tại"));
+        }
+
+        List<Map<String, Object>> options = new ArrayList<>();
+
+        // Luôn có tùy chọn mặc định trả về người tạo
+        options.add(Map.of(
+                "code", "RETURN_TO_REQUESTER",
+                "targetStepId", "",
+                "labelVn", "Trả về cho người tạo (Requester)"));
+
+        // Thuật toán quét các bước trước hoàn toàn xử lý ở BE
+        for (WorkflowStepDTO step : workflowDataService.getWorkflowData().getWorkflowSteps()) {
+            if (step.getSortOrder() < actionStep.getSortOrder()) { // Chỉ lấy các bước nằm phía trước
+                if (step.getStepApprovers() != null) {
+                    for (StepApproverDTO sa : step.getStepApprovers()) {
+                        String approverName = (sa.getApprover() != null) ? sa.getApprover().getFullName()
+                                : sa.getApproverId();
+                        options.add(Map.of(
+                                "code", "RETURN_TO_PREVIOUS_APPROVER",
+                                "targetStepId", step.getId(),
+                                "targetApproverId", sa.getApproverId(),
+                                "labelVn", "Trả về bước: " + step.getLevelName() + " - Người duyệt: " + approverName));
+                    }
+                }
+            }
+        }
+        return ResponseEntity.ok(options);
+    }
     // @GetMapping("/returnoption")
     // public ResponseEntity<?> getReturnOptions(
     // @RequestParam(required = false) String stepId,
@@ -269,8 +301,15 @@ public class WorkflowController {
                         targetStep.setStatus("READY");
                         if (targetStep.getStepApprovers() != null) {
                             targetStep.getStepApprovers().forEach(sa -> {
-                                sa.setStatus("READY");
-                                sa.setCompleteAt(null);
+                                // Nếu frontend có truyền targetApproverId, chỉ reset đúng người đó.
+                                // Nếu không truyền (trả về cả step), reset toàn bộ approver trong step.
+                                if (request.getTargetApproverId() == null ||
+                                        sa.getApproverId().equals(request.getTargetApproverId())) {
+                                    sa.setStatus("READY");
+                                    sa.setCompleteAt(null);
+                                } else {
+                                    sa.setStatus("PLANNED");
+                                }
                             });
                         }
                         workflow.setStatus("RETURNED_TO_" + targetStep.getLevelName().toUpperCase().replace(" ", "_"));
@@ -278,7 +317,6 @@ public class WorkflowController {
                 } else {
                     workflow.setStatus("RETURNED_TO_REQUESTER");
                 }
-
                 int currentSortOrder = step.getSortOrder();
                 workflow.getWorkflowSteps().stream()
                         .filter(s -> s.getSortOrder() >= currentSortOrder)
@@ -513,8 +551,8 @@ public class WorkflowController {
     // ======================================================
     // Health Check
     // ======================================================
-    // @GetMapping
-    // public ResponseEntity<String> healthCheck() {
-    // return ResponseEntity.ok("OK");
-    // }
+    @GetMapping
+    public ResponseEntity<String> healthCheck() {
+    return ResponseEntity.ok("OK");
+    }
 }

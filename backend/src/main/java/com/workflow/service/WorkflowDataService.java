@@ -13,7 +13,6 @@ import java.util.*;
 @Service
 public class WorkflowDataService {
     
-    // Chuẩn thực tế: Không tự 'new'. Để Spring tự tiêm ObjectMapper đã có cấu hình Global vào đây.
     @Autowired
     private ObjectMapper objectMapper; 
     
@@ -22,11 +21,9 @@ public class WorkflowDataService {
     private Map<String, Object> paymentRequests;
     private List<UserDTO> users;
 
-    // Chuẩn thực tế: Để Constructor trống hoặc xóa hẳn đi.
     public WorkflowDataService() {
     }
 
-    // Chuẩn thực tế: Dùng @PostConstruct để hàm này tự chạy NGAY SAU KHI Spring đã inject xong objectMapper.
     @PostConstruct
     public void init() {
         loadMockData();

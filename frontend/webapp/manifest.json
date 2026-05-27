@@ -6,7 +6,10 @@
         "i18n": "i18n/i18n.properties",
         "title": "{{appTitle}}",
         "description": "Procurement Workflow UI5 Application",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "applicationVersion": {
+            "version": "1.0.0"
+        }
     },
     "sap.ui": {
         "technology": "UI5",
