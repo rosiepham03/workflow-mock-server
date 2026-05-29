@@ -52,8 +52,7 @@ public class WorkflowController {
     }
 
     // ======================================================
-    // 2. DYNAMIC RETURN OPTIONS
-    // GET /returnoption?stepId=...&approverId=...
+    // 2. DYNAMIC RETURN OPTIONS (Đã chuyển sang dùng Model)
     // ======================================================
     @GetMapping("/api/workflow/return-options")
     public ResponseEntity<?> getReturnOptions(
@@ -62,145 +61,56 @@ public class WorkflowController {
 
         log.info("[BE LOG] Tính toán danh sách Return hợp lệ cho step: {}", stepId);
 
+        // Tìm thông tin bước hiện tại
         WorkflowStepDTO actionStep = workflowDataService.findWorkflowStep(stepId);
         if (actionStep == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Không tìm thấy Step hiện tại"));
         }
 
-        List<Map<String, Object>> options = new ArrayList<>();
+        // Khởi tạo đối tượng Response chính theo Model
+        ReturnOptionResponse response = new ReturnOptionResponse();
+        response.setSuccess(true);
+        // Map tên level hiện tại thành Role (ví dụ: "Section Manager")
+        response.setActorRole(mapLevelToRole(actionStep.getLevelName()));
 
-        // Luôn có tùy chọn mặc định trả về người tạo
-        options.add(Map.of(
-                "code", "RETURN_TO_REQUESTER",
-                "targetStepId", "",
-                "labelVn", "Trả về cho người tạo (Requester)"));
+        List<ReturnOptionDTO> options = new ArrayList<>();
 
-        // Thuật toán quét các bước trước hoàn toàn xử lý ở BE
         for (WorkflowStepDTO step : workflowDataService.getWorkflowData().getWorkflowSteps()) {
             if (step.getSortOrder() < actionStep.getSortOrder()) { // Chỉ lấy các bước nằm phía trước
                 if (step.getStepApprovers() != null) {
                     for (StepApproverDTO sa : step.getStepApprovers()) {
+
+                        // Khởi tạo DTO cho từng lựa chọn trả về
+                        ReturnOptionDTO dto = new ReturnOptionDTO();
+
+                        // Lấy thông tin cá nhân của người duyệt (nếu có)
                         String approverName = (sa.getApprover() != null) ? sa.getApprover().getFullName()
                                 : sa.getApproverId();
-                        options.add(Map.of(
-                                "code", "RETURN_TO_PREVIOUS_APPROVER",
-                                "targetStepId", step.getId(),
-                                "targetApproverId", sa.getApproverId(),
-                                "labelVn", "Trả về bước: " + step.getLevelName() + " - Người duyệt: " + approverName));
+                        String approverEmail = (sa.getApprover() != null) ? sa.getApprover().getEmail() : null;
+
+                        // Mapping dữ liệu vào Model ReturnOptionDTO
+                        dto.setName(approverName);
+                        dto.setEmail(approverEmail);
+                        dto.setOrder(step.getSortOrder());
+                        dto.setStepId(step.getId());
+                        dto.setUserId(sa.getApproverId());
+                        dto.setPosition(step.getLevelName()); // Chức vụ/Vị trí tương ứng với Level bước duyệt
+                        dto.setDepartment(null); // Có thể để null hoặc bổ sung từ sa.getApprover() nếu có
+
+                        options.add(dto);
                     }
                 }
             }
         }
-        return ResponseEntity.ok(options);
+
+        // Gán danh sách options vào đối tượng response
+        response.setOptions(options);
+
+        return ResponseEntity.ok(response);
     }
-    // @GetMapping("/returnoption")
-    // public ResponseEntity<?> getReturnOptions(
-    // @RequestParam(required = false) String stepId,
-    // @RequestParam(required = false) String approverId) {
-
-    // log.info("[GET] /returnoption - Tính toán danh sách Return động");
-
-    // if (stepId == null || approverId == null) {
-    // return ResponseEntity.badRequest().body(
-    // Map.of("error", "Thiếu tham số bắt buộc stepId và approverId.")
-    // );
-    // }
-
-    // WorkflowStepDTO actionStep = workflowDataService.findWorkflowStep(stepId);
-    // if (actionStep == null) {
-    // return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-    // Map.of("error", "Không tìm thấy Step tương ứng.")
-    // );
-    // }
-
-    // // Mặc định luôn có tùy chọn trả hẳn về ban đầu cho Người tạo (Requester)
-    // List<ReturnOptionDTO> options = new ArrayList<>();
-    // options.add(new ReturnOptionDTO());
-    // options.get(0).setCode("RETURN_TO_REQUESTER");
-    // options.get(0).setTargetStepId(null);
-    // options.get(0).setLabelVn("Trả về cho người tạo (Requester)");
-    // options.get(0).setLabelEn("Return to Requester");
-
-    // // Kiểm tra xem bước của người đang bấm nút có phải là bước ĐANG CẦN XỬ LÝ
-    // (READY/IN_PROGRESS) hay không
-    // boolean isCurrentApprover = "READY".equals(actionStep.getStatus()) ||
-    // "IN_PROGRESS".equals(actionStep.getStatus());
-
-    // // Quét toàn bộ danh sách các bước trong Workflow để lọc ra các option hiển
-    // thị lên Popup
-    // for (WorkflowStepDTO step :
-    // workflowDataService.getWorkflowData().getWorkflowSteps()) {
-    // if (step.getStepApprovers() == null) continue;
-
-    // for (StepApproverDTO sa : step.getStepApprovers()) {
-    // String saStatus = sa.getStatus() != null ? sa.getStatus().toUpperCase() : "";
-    // String approverLabel = (sa.getApprover() != null &&
-    // sa.getApprover().getFullName() != null)
-    // ? sa.getApprover().getFullName()
-    // : (sa.getApprover() != null && sa.getApprover().getEmployeeID() != null)
-    // ? sa.getApprover().getEmployeeID()
-    // : sa.getApproverId() != null ? sa.getApproverId() : "Unknown";
-
-    // if (isCurrentApprover) {
-    // // Kịch bản 1: Current approver bấm Return -> list các approver đã "APPROVED"
-    // ở các bước trước
-    // if (step.getSortOrder() < actionStep.getSortOrder() &&
-    // "APPROVED".equals(saStatus)) {
-    // ReturnOptionDTO option = new ReturnOptionDTO();
-    // option.setCode("RETURN_TO_PREVIOUS_APPROVER");
-    // option.setTargetStepId(step.getId());
-    // option.setApproverId(sa.getApproverId());
-    // option.setLabelVn("Trả về người duyệt: " + approverLabel);
-    // option.setLabelEn("Return to approver: " + approverLabel);
-    // options.add(option);
-    // }
-    // } else {
-    // // Kịch bản 2: Previous approver bấm Return
-    // boolean isBefore = step.getSortOrder() < actionStep.getSortOrder() &&
-    // "APPROVED".equals(saStatus);
-    // boolean isCurrentActiveStep = "READY".equals(step.getStatus()) ||
-    // "IN_PROGRESS".equals(step.getStatus());
-
-    // if (isBefore || isCurrentActiveStep) {
-    // ReturnOptionDTO option = new ReturnOptionDTO();
-    // option.setCode(isCurrentActiveStep ? "RETURN_TO_CURRENT_APPROVER" :
-    // "RETURN_TO_PREVIOUS_APPROVER");
-    // option.setTargetStepId(step.getId());
-    // option.setApproverId(sa.getApproverId());
-    // String status = saStatus.isEmpty() ? step.getStatus() : saStatus;
-    // option.setLabelVn("Trả về người duyệt: " + approverLabel + " (" + status +
-    // ")");
-    // option.setLabelEn("Return to approver: " + approverLabel + " (" + status +
-    // ")");
-    // options.add(option);
-    // }
-    // }
-    // }
-    // }
-
-    // // Loại bỏ trùng lặp
-    // Set<String> seen = new HashSet<>();
-    // List<ReturnOptionDTO> unique = new ArrayList<>();
-    // for (ReturnOptionDTO opt : options) {
-    // String key = opt.getApproverId() != null
-    // ? "A:" + opt.getApproverId()
-    // : "S:" + opt.getTargetStepId() + ":" + opt.getLabelEn();
-    // if (!seen.contains(key)) {
-    // seen.add(key);
-    // unique.add(opt);
-    // }
-    // }
-
-    // return ResponseEntity.ok(new ReturnOptionResponse(
-    // true,
-    // isCurrentApprover ? "CURRENT_APPROVER" : "PREVIOUS_APPROVER",
-    // unique
-    // ));
-    // }
 
     // ======================================================
     // 3. UPDATE WORKFLOW STEP STATUS & OUTCOMES
-    // POST /api/workflow/WorkflowSteps/:id
     // ======================================================
     @PostMapping("/api/workflow/WorkflowSteps/{id}")
     public ResponseEntity<?> updateWorkflowStepStatus(
@@ -245,10 +155,17 @@ public class WorkflowController {
 
         WorkflowDTO workflow = workflowDataService.getWorkflowData();
 
-        // State Machine xử lý vòng quanh 5 Outcomes
         switch (outcome) {
             case "APPROVE":
                 currentApprover.setStatus("APPROVED");
+
+                // Ghi log kiểm tra trạng thái thực tế các approver trong step song song
+                if (step.getStepApprovers() != null) {
+                    step.getStepApprovers()
+                            .forEach(sa -> log.info("[PARALLEL CHECK] Step: {} | Approver: {} | Status: {}",
+                                    step.getLevelName(), sa.getApproverId(), sa.getStatus()));
+                }
+
                 boolean allApproved = step.getStepApprovers().stream()
                         .allMatch(sa -> "APPROVED".equals(sa.getStatus()));
 
@@ -282,9 +199,19 @@ public class WorkflowController {
                 step.setCompleteAt(nowIso);
                 workflow.setStatus("REJECTED");
 
-                workflow.getWorkflowSteps().stream()
-                        .filter(s -> "PLANNED".equals(s.getStatus()))
-                        .forEach(s -> s.setStatus("CANCELLED"));
+                workflow.getWorkflowSteps().forEach(s -> {
+                    if ("PLANNED".equals(s.getStatus())) {
+                        s.setStatus("CANCELLED");
+                    }
+                    if (s.getStepApprovers() != null) {
+                        s.getStepApprovers().forEach(sa -> {
+                            if (!"REJECTED".equals(sa.getStatus())) {
+                                sa.setStatus("PLANNED");
+                                sa.setCompleteAt(null);
+                            }
+                        });
+                    }
+                });
                 break;
 
             case "RETURN":
@@ -301,12 +228,11 @@ public class WorkflowController {
                         targetStep.setStatus("READY");
                         if (targetStep.getStepApprovers() != null) {
                             targetStep.getStepApprovers().forEach(sa -> {
-                                // Nếu frontend có truyền targetApproverId, chỉ reset đúng người đó.
-                                // Nếu không truyền (trả về cả step), reset toàn bộ approver trong step.
                                 if (request.getTargetApproverId() == null ||
                                         sa.getApproverId().equals(request.getTargetApproverId())) {
                                     sa.setStatus("READY");
                                     sa.setCompleteAt(null);
+                                    sa.setComment(null);
                                 } else {
                                     sa.setStatus("PLANNED");
                                 }
@@ -317,13 +243,20 @@ public class WorkflowController {
                 } else {
                     workflow.setStatus("RETURNED_TO_REQUESTER");
                 }
+
                 int currentSortOrder = step.getSortOrder();
                 workflow.getWorkflowSteps().stream()
                         .filter(s -> s.getSortOrder() >= currentSortOrder)
                         .forEach(s -> {
                             s.setStatus("PLANNED");
+                            s.setCompleteAt(null);
+
                             if (s.getStepApprovers() != null) {
-                                s.getStepApprovers().forEach(sa -> sa.setStatus("PLANNED"));
+                                s.getStepApprovers().forEach(sa -> {
+                                    sa.setStatus("PLANNED");
+                                    sa.setCompleteAt(null);
+                                    sa.setComment(null);
+                                });
                             }
                         });
                 break;
@@ -420,55 +353,7 @@ public class WorkflowController {
     }
 
     // ======================================================
-    // 5. UPDATE PAYMENT REQUEST STATUS (Cập nhật thô trực tiếp)
-    // POST /api/pr/update-status
-    // ======================================================
-    // @PostMapping("/api/pr/update-status")
-    // public ResponseEntity<?> updatePRStatus(@RequestBody Map<String, Object>
-    // requestBody) {
-    // log.info("[POST] /api/pr/update-status");
-
-    // String prId = (String) requestBody.get("pr_id");
-    // String status = (String) requestBody.get("status");
-    // String comment = (String) requestBody.get("comment");
-    // String approverId = (String) requestBody.get("approver_id");
-
-    // log.info("-> PR ID: {} | Trạng thái tổng mới: {}", prId, status);
-
-    // Map<String, Object> allPRs = workflowDataService.getPaymentRequests();
-    // if (allPRs == null || !allPRs.containsKey(prId)) {
-    // return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error",
-    // "Payment Request not found"));
-    // }
-
-    // // Ép kiểu Map lồng từ cấu trúc JSON Object của Mock Data
-    // Map<String, Object> paymentRequest = (Map<String, Object>) allPRs.get(prId);
-    // paymentRequest.put("status", status);
-
-    // // Đọc mảng history_log hiện tại ra để ghi đè log mới
-    // List<Map<String, Object>> historyLog = (List<Map<String, Object>>)
-    // paymentRequest.computeIfAbsent("history_log", k -> new ArrayList<>());
-
-    // Map<String, Object> logEntry = new HashMap<>();
-    // logEntry.put("step", paymentRequest.getOrDefault("current_step",
-    // "DIRECT_UPDATE"));
-    // logEntry.put("approver", approverId != null ? approverId :
-    // "UNKNOWN_APPROVER");
-    // logEntry.put("status", status != null ? status.toUpperCase() : "");
-    // logEntry.put("comment", comment != null ? comment : "");
-    // logEntry.put("timestamp", Instant.now().toString());
-    // historyLog.add(logEntry);
-
-    // return ResponseEntity.ok(Map.of(
-    // "success", true,
-    // "message", "Payment Request updated to '" + status + "'",
-    // "current_data", paymentRequest
-    // ));
-    // }
-
-    // ======================================================
     // 6. GET VALID REASSIGNEES (Lọc User đồng cấp hợp lệ)
-    // POST /api/workflow/get-valid-reassignees
     // ======================================================
     @PostMapping("/api/workflow/get-valid-reassignees")
     public ResponseEntity<?> getValidReassignees(@RequestBody Map<String, String> requestBody) {
@@ -499,12 +384,11 @@ public class WorkflowController {
     }
 
     // ======================================================
-    // 7. GET HISTORY STEPS (Lấy lịch sử các bước đã duyệt thành công)
-    // GET /api/pr/:id/history-steps
+    // 7. GET HISTORY STEPS
     // ======================================================
     @GetMapping("/api/pr/{id}/history-steps")
     public ResponseEntity<?> getPRHistorySteps(@PathVariable String id) {
-        log.info("[GET] /api/pr/{}/history-steps - Lấy danh sách bước đã duyệt để Return", id);
+        log.info("[GET] /api/pr/{}/history-steps - Lấy danh sách lịch sử đầy đủ trạng thái", id);
 
         Map<String, Object> allPRs = workflowDataService.getPaymentRequests();
         if (allPRs == null || !allPRs.containsKey(id)) {
@@ -518,14 +402,20 @@ public class WorkflowController {
             return ResponseEntity.ok(Map.of("success", true, "data", Collections.emptyList()));
         }
 
-        // Chấp nhận trạng thái APPROVE, APPROVED hoặc COMPLETED giống Node.js
         List<Map<String, Object>> filteredHistory = historyLog.stream()
                 .filter(logEntry -> {
                     String status = (String) logEntry.get("status");
                     if (status == null)
                         return false;
+
                     String statusUpper = status.toUpperCase();
-                    return statusUpper.contains("APPROVE") || "COMPLETED".equals(statusUpper);
+
+                    return statusUpper.contains("APPROVE")
+                            || "COMPLETED".equals(statusUpper)
+                            || "REJECT".equals(statusUpper)
+                            || "RETURN".equals(statusUpper)
+                            || "REASSIGN".equals(statusUpper)
+                            || "ON_HOLD".equals(statusUpper);
                 })
                 .collect(Collectors.toList());
 
@@ -534,7 +424,6 @@ public class WorkflowController {
 
     // ======================================================
     // 8. GET PAYMENT REQUEST DETAIL
-    // GET /api/pr/:id
     // ======================================================
     @GetMapping("/api/pr/{id}")
     public ResponseEntity<?> getPRDetail(@PathVariable String id) {
@@ -553,6 +442,6 @@ public class WorkflowController {
     // ======================================================
     @GetMapping
     public ResponseEntity<String> healthCheck() {
-    return ResponseEntity.ok("OK");
+        return ResponseEntity.ok("OK");
     }
 }

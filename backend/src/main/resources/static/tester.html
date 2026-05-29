@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAP BAS - Spring Boot Workflow API Tester (Nâng cấp)</title>
+    <title>SAP BAS - Spring Boot Workflow API Tester</title>
     <style>
         :root {
             --primary: #0a6ed1;
@@ -303,9 +303,9 @@
     <div class="container">
         <!-- CẤU HÌNH BASE URL -->
         <div class="header">
-            <h1 style="margin:0; font-size: 22px;">🛠️ SAP BAS API Integration Tester (Nâng cấp)</h1>
+            <h1 style="margin:0; font-size: 22px;">SAP BAS API Integration Tester</h1>
             <div class="config-group">
-                <label style="font-weight: bold;">Base URL (Cổng BAS của bạn):</label>
+                <label style="font-weight: bold;">Base URL:</label>
                 <input type="text" id="baseUrl" value="" placeholder="Ví dụ: http://localhost:8082">
                 <button onclick="fetchAndPopulateWorkflow()" style="background-color: var(--primary);">Tải Workflow &
                     Làm mới Step</button>
@@ -337,7 +337,7 @@
 
                 <!-- 2. Tính năng State Machine -->
                 <div class="card">
-                    <h2>2. State Machine Action (POST /api/workflow/WorkflowSteps/:id)</h2>
+                    <h2>2. State Machine Action (POST /WorkflowSteps/:id)</h2>
                     <div class="action-zone">
                         <div>
                             <label>Target Step ID:</label>
@@ -391,8 +391,7 @@
                             <label>Ý kiến / Nhận xét (comment):</label>
                             <textarea id="smComment" rows="2">Xử lý hồ sơ chứng từ trên hệ thống.</textarea>
                         </div>
-                        <button style="background-color: var(--success);" onclick="triggerStateMachine()">Gửi lệnh State
-                            Machine </button>
+                        <button style="background-color: var(--success);" onclick="triggerStateMachine()">POST </button>
                     </div>
                 </div>
             </div>
@@ -727,7 +726,7 @@
             const comment = document.getElementById('smComment').value;
 
             if (!approverId) {
-                updateConsole('WARNING', { message: "Vui lòng chọn Approver từ dropdown trước khi gửi lệnh." });
+                updateConsole('WARNING', { message: "Vui lòng chọn Approver từ dropdown trước khi POST." });
                 return;
             }
 
@@ -764,21 +763,53 @@
             modal.style.display = 'flex';
 
             try {
-                // Gọi BE tính toán hộ, FE không tự ý filter sortOrder nữa
                 const baseUrl = getBaseUrl();
-                const response = await fetch(`${baseUrl}/api/workflow/return-options?stepId=${currentStepId}&approverId=${approverId}`);
-                const options = await response.json();
+                const response = await fetch(`${baseUrl}/return-options?stepId=${currentStepId}&approverId=${approverId}`);
+                const responseData = await response.json();
 
-                let html = '<label>Chọn đích đến hợp lệ (Do BE phê duyệt):</label>';
-                html += '<div style="max-height: 400px; overflow-y: auto; padding: 10px;">';
+                // KHẮC PHỤC LỖI: Kiểm tra cấu trúc dữ liệu từ BE đổ về
+                let options = [];
+                let actorRole = "N/A";
+
+                if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
+                    // Nếu BE trả về đúng Object bọc ReturnOptionResponse
+                    options = responseData.options || [];
+                    actorRole = responseData.actorRole || "N/A";
+                } else if (Array.isArray(responseData)) {
+                    // Trường hợp Fallback nếu BE vẫn đang trả về mảng thô (Map cũ)
+                    options = responseData;
+                }
+
+                if (options.length === 0) {
+                    modalBody.innerHTML = '<p>Không có bước duyệt nào hợp lệ ở phía trước để trả về.</p>';
+                    return;
+                }
+
+                let html = `<label>Đóng vai trò: <span style="color:var(--primary); font-weight:bold;">${actorRole}</span></label>`;
+                html += '<div style="max-height: 400px; overflow-y: auto; padding: 10px; margin-top:10px;">';
 
                 options.forEach((opt, index) => {
+                    // Tạo label hiển thị linh hoạt dựa theo Model mới hoặc cấu trúc cũ
+                    const stepOrder = opt.order !== undefined ? `[Thứ tự ${opt.order}]` : '';
+                    const positionName = opt.position || opt.levelName || 'Bước trước';
+                    const approverName = opt.name || opt.labelVn || 'Người duyệt';
+                    const emailStr = opt.email ? ` (${opt.email})` : '';
+                    
+                    const displayLabel = `Trả về bước ${stepOrder}: ${positionName} - ${approverName}${emailStr}`;
+                    
+                    // Lấy chính xác step_ID và user_ID theo JsonProperty định nghĩa ở Java DTO
+                    const targetStep = opt.step_ID || opt.targetStepId || '';
+                    const targetUser = opt.user_ID || opt.targetApproverId || '';
+
                     html += `
                 <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="returnTarget" value="${opt.targetStepId || ''}" 
-                               data-approver-id="${opt.targetApproverId || ''}" ${index === 0 ? 'checked' : ''}>
-                        <span style="margin-left: 10px;"><strong>${opt.labelVn}</strong></span>
+                        <input type="radio" name="returnTarget" value="approver" 
+                               data-step-id="${targetStep}" 
+                               data-approver-id="${targetUser}" 
+                               data-approver-name="${opt.name || ''}"
+                               ${index === 0 ? 'checked' : ''}>
+                        <span style="margin-left: 10px;"><strong>${displayLabel}</strong></span>
                     </label>
                 </div>`;
                 });
@@ -810,7 +841,7 @@
                 console.log('Getting reassignees for role:', currentRole, 'approverId:', currentApproverId);
 
                 // Gọi API lấy danh sách người cùng role
-                const response = await fetch(`${baseUrl}/api/workflow/get-valid-reassignees`, {
+                const response = await fetch(`${baseUrl}/get-valid-reassignees`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -904,7 +935,6 @@
         }
 
         // Xác nhận action từ modal
-        // Xác nhận action từ modal
         function confirmAction() {
             const statusCode = pendingAction.statusCode;
 
@@ -987,7 +1017,7 @@
             console.log('Sending payload:', payload);
 
             // Gọi API
-            await callApi(`/api/workflow/WorkflowSteps/${action.stepId}`, 'POST', payload);
+            await callApi(`/WorkflowSteps/${action.stepId}`, 'POST', payload);
 
             // Sau khi gửi thành công, tải lại workflow để cập nhật trạng thái
             setTimeout(() => {
@@ -1157,7 +1187,7 @@
 
             if (action === 'REJECT') {
                 // Hiển thị cảnh báo xác nhận
-                const confirmReject = confirm('CẢNH BÁO: Hành động REJECT sẽ KẾT THÚC toàn bộ workflow và không thể khôi phục. Bạn có chắc chắn muốn từ chối?');
+                const confirmReject = confirm('CẢNH BÁO: KẾT THÚC toàn bộ workflow và không thể khôi phục. Bạn có chắc chắn muốn từ chối?');
                 if (!confirmReject) {
                     // Nếu không xác nhận, chuyển lại thành APPROVE
                     document.getElementById('smStatusCode').value = 'APPROVE';

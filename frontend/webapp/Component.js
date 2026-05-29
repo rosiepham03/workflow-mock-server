@@ -50,7 +50,6 @@ sap.ui.define([
             this.setModel(i18nModel, "i18n");
 
             // CHỈ gọi router nếu có routing trong manifest
-            // Hiện tại manifest của bạn có routing, nhưng cần kiểm tra
             try {
                 if (this.getRouter()) {
                     this.getRouter().initialize();
