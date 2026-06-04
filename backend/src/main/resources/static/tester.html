@@ -306,7 +306,9 @@
             <h1 style="margin:0; font-size: 22px;">SAP BAS API Integration Tester</h1>
             <div class="config-group">
                 <label style="font-weight: bold;">Base URL:</label>
-                <input type="text" id="baseUrl" value="" placeholder="Ví dụ: http://localhost:8082">
+                <input type="text" id="baseUrl" value="" placeholder="Ví dụ: http://localhost:8080">
+                <label style="font-weight: bold;">PR ID:</label>
+                <input type="text" id="prId" value="550e8400-e29b-41d4-a716-446655440003" placeholder="PR ID (ví dụ UUID)">
                 <button onclick="fetchAndPopulateWorkflow()" style="background-color: var(--primary);">Tải Workflow &
                     Làm mới Step</button>
                 <button onclick="testApiConnection()" style="background-color: #6c757d;">Kiểm tra kết nối</button>
@@ -324,14 +326,13 @@
                         <button onclick="callApi('/wfstep', 'GET')">GET</button>
                     </div>
                     <div class="endpoint-row">
-                        <span><span class="badge bg-get">GET</span> /api/pr/{{prId}} (Chi tiết Payment Request)</span>
-                        <button onclick="callApi(`/api/pr/550e8400-e29b-41d4-a716-446655440003`, 'GET')">GET</button>
+                        <span><span class="badge bg-get">GET</span> /api/pr/{prId} (Chi tiết Payment Request)</span>
+                        <button onclick="callPrDetail()">GET</button>
                     </div>
                     <div class="endpoint-row">
-                        <span><span class="badge bg-get">GET</span> /api/pr/{{prId}}/history-steps (Lịch sử
+                        <span><span class="badge bg-get">GET</span> /api/pr/{prId}/history-steps (Lịch sử
                             duyệt)</span>
-                        <button
-                            onclick="callApi(`/api/pr/550e8400-e29b-41d4-a716-446655440003/history-steps`, 'GET')">GET</button>
+                        <button onclick="callPrHistory()">GET</button>
                     </div>
                 </div>
 
@@ -458,7 +459,7 @@
             let url = document.getElementById('baseUrl').value.trim();
             if (!url) {
                 url = window.location.origin;
-                if (url === 'null' || url === 'file://') url = 'http://localhost:8082';
+                if (url === 'null' || url === 'file://') url = 'http://localhost:8080';
                 document.getElementById('baseUrl').value = url;
             }
             return url.replace(/\/$/, "");
@@ -493,51 +494,86 @@
             const approverSelect = document.getElementById('smApproverSelect');
             const warningDiv = document.getElementById('parallelWarning');
 
+            approverSelect.innerHTML =
+                '<option value="">-- loading --</option>';
+
+            document.getElementById('smApproverId').value = '';
+            document.getElementById('smActionBy').value = '';
+            warningDiv.style.display = 'none';
+
             if (!stepId || !fullWorkflowData || !fullWorkflowData.workflowSteps) {
-                approverSelect.innerHTML = '<option value="">-- Không có dữ liệu step --</option>';
+                approverSelect.innerHTML =
+                    '<option value="">-- Không có dữ liệu step --</option>';
                 return;
             }
 
-            const selectedStep = fullWorkflowData.workflowSteps.find(step => step.ID === stepId);
-            if (!selectedStep || !selectedStep.stepApprovers || selectedStep.stepApprovers.length === 0) {
-                approverSelect.innerHTML = '<option value="">-- Step này không có approver nào --</option>';
-                document.getElementById('smApproverId').value = '';
-                document.getElementById('smActionBy').value = '';
-                warningDiv.style.display = 'none';
+            const selectedStep = fullWorkflowData.workflowSteps.find(
+                step => step.ID === stepId
+            );
+
+            if (
+                !selectedStep ||
+                !selectedStep.stepApprovers ||
+                selectedStep.stepApprovers.length === 0
+            ) {
+                approverSelect.innerHTML =
+                    '<option value="">-- Step này không có approver nào --</option>';
                 return;
             }
 
             // Hiển thị cảnh báo nếu có nhiều approver
             const approverCount = selectedStep.stepApprovers.length;
+
             if (approverCount > 1) {
                 warningDiv.style.display = 'inline-block';
-                warningDiv.innerHTML = `Step này có ${approverCount} người duyệt (Parallel: ${selectedStep.isParallel ? 'Có' : 'Không'}). Hãy chọn đúng người!`;
-            } else {
-                warningDiv.style.display = 'none';
+                warningDiv.innerHTML =
+                    `Step này có ${approverCount} người duyệt ` +
+                    `(Parallel: ${selectedStep.isParallel ? 'Có' : 'Không'}). ` +
+                    `Hãy chọn đúng người!`;
             }
 
-            // Tạo dropdown options từ danh sách approver
+            // Tạo options
             let options = '<option value="">-- Chọn người duyệt --</option>';
-            selectedStep.stepApprovers.forEach((approver, index) => {
-                const isProxy = approver.proxyApprover_id && approver.proxyApprover && approver.proxyApprover.id;
-                const approverInfo = isProxy ? approver.proxyApprover : approver.approver;
-                const approverId = isProxy ? approver.proxyApprover.id : approver.approver_id;
-                const approverName = approverInfo?.fullName || 'Unknown';
-                const approverEmail = approverInfo?.email || '';
-                const proxyLabel = isProxy ? ' (Ủy quyền)' : '';
 
-                options += `<option value="${approverId}" data-name="${approverName}">
-            ${approverName}${proxyLabel} - ${approverEmail || approverId}
-        </option>`;
+            selectedStep.stepApprovers.forEach((approver) => {
+
+                // detect proxy when either proxyApprover_id is set or proxyApprover object contains an id
+                const hasProxyIdField = !!approver.proxyApprover_id;
+                const hasProxyObject = !!(approver.proxyApprover && approver.proxyApprover.id);
+                const isProxy = hasProxyIdField || hasProxyObject;
+
+                const approverInfo = isProxy
+                    ? (approver.proxyApprover || null)
+                    : (approver.approver || null);
+
+                // prefer explicit id on objects, fallback to snake_case id fields
+                const approverId = isProxy
+                    ? (approver.proxyApprover?.id || approver.proxyApprover_id)
+                    : (approver.approver?.id || approver.approver_id);
+
+                const approverName =
+                    approverInfo?.fullName || (isProxy ? approver.proxyApprover_id : approver.approver_id) || 'Unknown';
+
+                const approverEmail =
+                    approverInfo?.email || '';
+
+                const proxyLabel =
+                    isProxy ? ' (Ủy quyền)' : '';
+
+                options += `
+            <option
+                value="${approverId}"
+                data-name="${approverName}">
+                ${approverName}${proxyLabel} - ${approverEmail || approverId}
+            </option>
+        `;
             });
 
             approverSelect.innerHTML = options;
 
-            // Tự động chọn approver đầu tiên
-            if (selectedStep.stepApprovers.length > 0) {
-                approverSelect.selectedIndex = 1;
-                onApproverChange();
-            }
+            // Auto select first approver
+            // approverSelect.selectedIndex = 1;
+            onApproverChange();
         }
 
         // Khi người dùng chọn approver từ dropdown
@@ -562,72 +598,6 @@
             // Có thể thêm hiệu ứng visual nếu cần
             console.log(`Đã chọn hành động: ${action}`);
         }
-
-        // Lọc danh sách step dựa trên action và step hiện tại
-        // function filterStepsByAction() {
-        //     const action = document.getElementById('smStatusCode').value;
-        //     const currentStepId = document.getElementById('smStepId').value;
-        //     const stepSelect = document.getElementById('smStepId');
-
-        //     if (!fullWorkflowData || !fullWorkflowData.workflowSteps) return;
-
-        //     const allSteps = fullWorkflowData.workflowSteps;
-        //     const currentStep = allSteps.find(s => s.ID === currentStepId);
-        //     if (!currentStep) return;
-
-        //     let validSteps = [];
-
-        //     switch (action) {
-        //         case 'APPROVE':
-        //             // APPROVE: chỉ hiển thị step hiện tại (không cho chọn step khác)
-        //             validSteps = [currentStep];
-        //             break;
-        //         case 'RETURN':
-        //             // RETURN: chỉ hiển thị các step phía trước (sortOrder < current)
-        //             validSteps = allSteps.filter(s => s.sortOrder < currentStep.sortOrder);
-        //             break;
-        //         case 'REASSIGN':
-        //             // REASSIGN: giữ nguyên step hiện tại (chỉ đổi người duyệt)
-        //             validSteps = [currentStep];
-        //             break;
-        //         case 'REJECT':
-        //         case 'ON_HOLD':
-        //             // REJECT và ON_HOLD: không cần chọn step khác
-        //             validSteps = [currentStep];
-        //             break;
-        //         default:
-        //             validSteps = allSteps;
-        //     }
-
-        //     // Lưu lại current selection
-        //     const currentValue = stepSelect.value;
-
-        //     // Repopulate dropdown
-        //     stepSelect.innerHTML = '<option value="">-- Chọn một Step --</option>';
-        //     validSteps.forEach(step => {
-        //         const option = document.createElement('option');
-        //         option.value = step.ID;
-        //         option.setAttribute('data-sort-order', step.sortOrder);
-        //         option.textContent = `${step.levelName || 'Step'} (Order: ${step.sortOrder}) - Status: ${step.status || 'N/A'}`;
-
-        //         // Thêm cảnh báo nếu step bị disable do status
-        //         if (step.status !== 'READY' && step.status !== 'IN_PROGRESS') {
-        //             option.textContent += ' (Không sẵn sàng)';
-        //         }
-
-        //         stepSelect.appendChild(option);
-        //     });
-
-        //     // Khôi phục selection nếu value vẫn còn trong danh sách mới
-        //     if (validSteps.some(s => s.ID === currentValue)) {
-        //         stepSelect.value = currentValue;
-        //     } else if (validSteps.length > 0) {
-        //         stepSelect.value = validSteps[0].ID;
-        //     }
-
-        //     // Trigger cập nhật approver dropdown
-        //     autoFillApproverAndActionBy();
-        // }
 
         // Hàm lấy step ID phía trước (cho RETURN)
         function getPreviousStepId(currentStepId) {
@@ -701,6 +671,26 @@
             }
         }
 
+        // Gọi chi tiết PR dựa trên input PR ID
+        function callPrDetail() {
+            const prId = document.getElementById('prId')?.value?.trim();
+            if (!prId) {
+                updateConsole('WARNING', { message: 'Vui lòng nhập PR ID trước khi gọi API.' });
+                return;
+            }
+            callApi(`/api/pr/${encodeURIComponent(prId)}`, 'GET');
+        }
+
+        // Gọi lịch sử bước PR dựa trên input PR ID
+        function callPrHistory() {
+            const prId = document.getElementById('prId')?.value?.trim();
+            if (!prId) {
+                updateConsole('WARNING', { message: 'Vui lòng nhập PR ID trước khi gọi API.' });
+                return;
+            }
+            callApi(`/api/pr/${encodeURIComponent(prId)}/history-steps`, 'GET');
+        }
+
         // 1. Kích hoạt xử lý State Machine (API trọng tâm số 3)
         // Biến lưu trạng thái action đang chờ xác nhận
         let pendingAction = {
@@ -764,7 +754,8 @@
 
             try {
                 const baseUrl = getBaseUrl();
-                const response = await fetch(`${baseUrl}/return-options?stepId=${currentStepId}&approverId=${approverId}`);
+                const prIdQuery = document.getElementById('prId')?.value?.trim() || (fullWorkflowData && fullWorkflowData.documentId);
+                const response = await fetch(`${baseUrl}/api/workflow/return-options?stepId=${currentStepId}&approverId=${approverId}${prIdQuery ? '&prId=' + encodeURIComponent(prIdQuery) : ''}`)
                 const responseData = await response.json();
 
                 // KHẮC PHỤC LỖI: Kiểm tra cấu trúc dữ liệu từ BE đổ về
@@ -794,9 +785,9 @@
                     const positionName = opt.position || opt.levelName || 'Bước trước';
                     const approverName = opt.name || opt.labelVn || 'Người duyệt';
                     const emailStr = opt.email ? ` (${opt.email})` : '';
-                    
+
                     const displayLabel = `Trả về bước ${stepOrder}: ${positionName} - ${approverName}${emailStr}`;
-                    
+
                     // Lấy chính xác step_ID và user_ID theo JsonProperty định nghĩa ở Java DTO
                     const targetStep = opt.step_ID || opt.targetStepId || '';
                     const targetUser = opt.user_ID || opt.targetApproverId || '';
@@ -841,7 +832,7 @@
                 console.log('Getting reassignees for role:', currentRole, 'approverId:', currentApproverId);
 
                 // Gọi API lấy danh sách người cùng role
-                const response = await fetch(`${baseUrl}/get-valid-reassignees`, {
+                const response = await fetch(`${baseUrl}/api/workflow/get-valid-reassignees`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -987,17 +978,21 @@
                 };
             }
 
+            const actionData = { ...pendingAction };
             closeModal();
-            sendStateMachineAction(pendingAction);
+            sendStateMachineAction(actionData);
         }
 
         // Gửi action lên server
         async function sendStateMachineAction(action) {
+            const prIdUsed = document.getElementById('prId')?.value?.trim() || (fullWorkflowData && fullWorkflowData.documentId);
+
             const payload = {
                 status_code: action.statusCode,
                 approverId: action.approverId,
                 comment: action.comment,
-                actionBy: action.actionBy
+                actionBy: action.actionBy,
+                documentId: prIdUsed
             };
 
             if (action.statusCode === 'RETURN') {
@@ -1017,12 +1012,9 @@
             console.log('Sending payload:', payload);
 
             // Gọi API
-            await callApi(`/WorkflowSteps/${action.stepId}`, 'POST', payload);
+            await callApi(`/api/workflow/WorkflowSteps/${action.stepId}`, 'POST', payload);
 
-            // Sau khi gửi thành công, tải lại workflow để cập nhật trạng thái
-            setTimeout(() => {
-                fetchAndPopulateWorkflow();
-            }, 500);
+            await fetchAndPopulateWorkflow();
         }
 
         // Đóng modal
@@ -1063,7 +1055,8 @@
             indicator.innerText = 'Đang tải workflow từ server...';
 
             try {
-                const url = `${baseUrl}/wfstep`;
+                const prIdInput = document.getElementById('prId')?.value?.trim();
+                const url = `${baseUrl}/wfstep${prIdInput ? '?prId=' + encodeURIComponent(prIdInput) : ''}`;
                 console.log('Gọi API:', url);
 
                 const response = await fetch(url, {
@@ -1076,7 +1069,7 @@
                 const data = await response.json();
                 console.log('Dữ liệu nhận được:', data);
 
-                fullWorkflowData = data;
+                fullWorkflowData = JSON.parse(JSON.stringify(data));
 
                 // Lấy danh sách các step từ response
                 let steps = [];
@@ -1123,7 +1116,7 @@
                 fullWorkflowData.currentStep = activeStep;
 
                 // Populate approver dropdown cho step hiện tại
-                populateApproverDropdown(activeStep.ID);
+                populateApproverDropdown(fullWorkflowData.currentStep.ID);
 
                 // Cập nhật thông tin workflow
                 updateWorkflowProgress(steps, activeStep);
@@ -1234,7 +1227,7 @@
                     error: error.message,
                     url: `${baseUrl}/wfstep`,
                     suggestions: [
-                        "1. Kiểm tra Spring Boot đã chạy chưa (mặc định port 8082)",
+                        "1. Kiểm tra Spring Boot đã chạy chưa (mặc định port 8080)",
                         "2. Kiểm tra CORS configuration trong Java",
                         "3. Thử mở trực tiếp URL trong browser: " + `${baseUrl}/wfstep`
                     ]
@@ -1246,7 +1239,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             const baseUrlInput = document.getElementById('baseUrl');
             if (!baseUrlInput.value) {
-                baseUrlInput.value = window.location.origin !== 'file://' ? window.location.origin : 'http://localhost:8082';
+                baseUrlInput.value = window.location.origin !== 'file://' ? window.location.origin : 'http://localhost:8080';
             }
             setTimeout(() => {
                 fetchAndPopulateWorkflow();

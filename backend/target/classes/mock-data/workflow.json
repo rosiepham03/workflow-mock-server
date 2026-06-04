@@ -60,10 +60,10 @@
             "email": "fixed-term.hong.phamthikim@vn.bosch.com"
           },
           "proxyApprover": {
-            "id": null,
-            "employeeID": null,
-            "fullName": null,
-            "email": null
+            "id": "550e8400-e29b-41d4-a716-446655440104",
+            "employeeID": "E104",
+            "fullName": "Đỗ Văn Linh",
+            "email": "fixed-term.hong.phamthikim@vn.bosch.com"
           }
         },
         {
@@ -87,10 +87,10 @@
             "email": "ly.dinhvan@vn.bosch.com"
           },
           "proxyApprover": {
-            "id": null,
-            "employeeID": null,
-            "fullName": null,
-            "email": null
+            "id": "550e8400-e29b-41d4-a716-446655440003",
+            "employeeID": "E003",
+            "fullName": "Phạm Duy Hùng",
+            "email": "ly.dinhvan@vn.bosch.com"
           }
         }
       ]

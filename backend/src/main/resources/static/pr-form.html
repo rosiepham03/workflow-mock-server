@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PR Form - Lightweight</title>
+    <style>
+        :root {
+            --primary: #0a6ed1;
+            --card: #fff;
+            --bg: #f4f6f9;
+            --muted: #666
+        }
+
+        body {
+            font-family: Inter, system-ui, Arial, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 24px
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto
+        }
+
+        .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(10, 110, 209, 0.06);
+            margin-bottom: 18px
+        }
+
+        h1 {
+            margin: 0 0 14px;
+            color: var(--primary);
+            font-size: 20px
+        }
+
+        /* 2 cột: trái thu nhỏ, phải to ra, bảng được scroll */
+        .two-columns {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+        }
+
+        .workflow-info {
+            flex: 0 0 280px;
+            /* CỐ ĐỊNH: thu nhỏ workflow, không giãn */
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .approval-history {
+            flex: 1;
+            /* Chiếm phần còn lại */
+            min-width: 0;
+            /* QUAN TRỌNG: cho phép thu nhỏ để bảng có thể scroll */
+            overflow-x: auto;
+            /* Bảng scroll ngang trong khung này */
+        }
+
+        .workflow-steps {
+            margin-top: 12px;
+        }
+
+        .step-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e6ea;
+            font-size: 13px;
+        }
+
+        .step-name {
+            font-weight: 500;
+        }
+
+        .step-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: #eef2f7;
+        }
+
+        .step-status.completed {
+            background: #d1e7dd;
+            color: #0a3622;
+        }
+
+        .step-status.ready {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .step-status.planned {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            display: block;
+            margin-bottom: 6px
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e3e7ea;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .two {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #123;
+            margin-bottom: 8px
+        }
+
+        .small {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 0;
+            cursor: pointer
+        }
+
+        .secondary {
+            background: #6c757d
+        }
+
+        /* ===== BẢNG TRONG APPROVAL HISTORY - CHO PHÉP SCROLL ===== */
+        .approval-history {
+            overflow-x: auto;
+        }
+
+        .approval-history table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 580px;
+        }
+
+        .approval-history th,
+        .approval-history td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: left;
+            vertical-align: top;
+            word-break: break-word;
+        }
+
+        /* Cố định tỷ lệ cột để bảng đẹp hơn */
+        .approval-history th:nth-child(1) {
+            width: 14%;
+        }
+
+        /* Step */
+        .approval-history th:nth-child(2) {
+            width: 14%;
+        }
+
+        /* Approver */
+        .approval-history th:nth-child(3) {
+            width: 12%;
+        }
+
+        /* Status */
+        .approval-history th:nth-child(4) {
+            width: 38%;
+        }
+
+        /* Comment */
+        .approval-history th:nth-child(5) {
+            width: 22%;
+        }
+
+        /* Timestamp */
+
+        @media (max-width: 900px) {
+            .workflow-info {
+                flex: 0 0 100%;
+                /* Màn hình nhỏ thì 2 cột chồng lên */
+            }
+
+            .approval-history {
+                flex: 0 0 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h1>Purchase Requisition</h1>
+            <div style="display:flex;gap:8px;align-items:center">
+                <input id="baseUrl" placeholder="Base URL (optional)"
+                    style="padding:8px;border-radius:6px;border:1px solid #ddd;width:280px">
+                <input id="prId" placeholder="PR ID (UUID)"
+                    style="padding:8px;border-radius:6px;border:1px solid #ddd;width:260px">
+                <button class="btn" onclick="loadPr()">Load PR</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">1. PR Information</div>
+            <div class="two">
+                <div>
+                    <label>PR Code</label>
+                    <input id="pr_code">
+                </div>
+                <div>
+                    <label>Amount</label>
+                    <input id="amount">
+                </div>
+                <div>
+                    <label>Title</label>
+                    <input id="title">
+                </div>
+                <div>
+                    <label>Currency</label>
+                    <input id="currency">
+                </div>
+                <div>
+                    <label>Department</label>
+                    <input id="department">
+                </div>
+                <div>
+                    <label>Requester</label>
+                    <input id="requester">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">2. Business Information</div>
+            <div class="two">
+                <div>
+                    <label>Vendor Name</label>
+                    <input id="vendor">
+                </div>
+                <div>
+                    <label>Vendor Code</label>
+                    <input id="vendor_code">
+                </div>
+                <div>
+                    <label>Cost Center</label>
+                    <input id="cost_center">
+                </div>
+                <div>
+                    <label>Payment Due Date</label>
+                    <input id="due_date" type="date">
+                </div>
+                <div style="grid-column:1/-1">
+                    <label>Attachment</label>
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <input type="file" id="attachmentFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png"
+                            style="flex: 1;">
+                        <button type="button" class="btn secondary" onclick="uploadAttachment()"
+                            style="white-space: nowrap;">Upload</button>
+                    </div>
+                    <div id="attachmentInfo" class="small" style="margin-top: 6px;"></div>
+                    <input type="hidden" id="attachment">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="section-title">3. Workflow Information (Read Only)</div>
+                <div class="row" style="gap:20px">
+                    <div style="flex:1">
+                        <label>Status</label>
+                        <input id="wf_status" readonly>
+                    </div>
+                    <div style="flex:2">
+                        <label>Current Step</label>
+                        <input id="wf_current_step" readonly>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px">
+                    <label class="small">Workflow Steps Preview</label>
+                    <div id="stepsPreview" style="margin-top:8px"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">4. Approval History</div>
+                <div id="historyContainer" class="approval-history">
+                    <p class="small">No history loaded</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px">
+            <button class="btn secondary" onclick="resetForm()">Cancel</button>
+            <button class="btn" onclick="saveLocal()">Save (local)</button>
+        </div>
+    </div>
+
+    <script>
+        function getBaseUrl() {
+            let url = document.getElementById('baseUrl').value.trim();
+            if (!url) { url = window.location.origin; if (url === 'file://' || !url) url = 'http://localhost:8080'; }
+            return url.replace(/\/$/, "");
+        }
+
+        // Biến lưu PR ID hiện tại để upload
+        let currentPrId = '';
+
+        async function uploadAttachment() {
+            const fileInput = document.getElementById('attachmentFile');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Vui lòng chọn file để upload');
+                return;
+            }
+
+            const prId = document.getElementById('prId').value.trim() || currentPrId;
+            if (!prId) {
+                alert('Vui lòng tải PR trước khi upload file');
+                return;
+            }
+
+            const base = getBaseUrl();
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('prId', prId);
+
+            try {
+                const resp = await fetch(`${base}/api/pr/${encodeURIComponent(prId)}/attachment`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!resp.ok) throw new Error('Upload failed: ' + resp.status);
+
+                const result = await resp.json();
+                // Lưu tên file vào hidden input
+                document.getElementById('attachment').value = result.filename || file.name;
+                document.getElementById('attachmentInfo').innerHTML = `✅ Đã upload: ${result.filename || file.name}`;
+
+                // Hiển thị link tải nếu có
+                if (result.downloadUrl) {
+                    const link = document.createElement('a');
+                    link.href = result.downloadUrl;
+                    link.textContent = 'Tải file';
+                    link.target = '_blank';
+                    document.getElementById('attachmentInfo').appendChild(document.createElement('br'));
+                    document.getElementById('attachmentInfo').appendChild(link);
+                }
+
+                fileInput.value = ''; // Reset input
+                alert('Upload thành công!');
+            } catch (e) {
+                console.error('Upload error:', e);
+                alert('Lỗi upload: ' + e.message);
+                document.getElementById('attachmentInfo').innerHTML = `❌ Upload thất bại: ${e.message}`;
+            }
+        }
+
+        async function loadPr() {
+            const prId = document.getElementById('prId').value.trim();
+            if (!prId) { alert('Vui lòng nhập PR ID'); return; }
+            currentPrId = prId;  // Lưu lại
+            const base = getBaseUrl();
+            try {
+                const resp = await fetch(`${base}/api/pr/${encodeURIComponent(prId)}`);
+                if (!resp.ok) throw new Error('PR not found');
+                const data = await resp.json();
+                fillPrForm(data);
+
+                // Nếu có attachment trong data thì hiển thị
+                if (data.attachment) {
+                    document.getElementById('attachment').value = data.attachment;
+                    document.getElementById('attachmentInfo').innerHTML = `📎 File đính kèm: ${data.attachment}`;
+                }
+            } catch (e) { alert('Lỗi tải PR: ' + e.message); }
+
+            // load workflow, history...
+            try {
+                const resp2 = await fetch(`${getBaseUrl()}/wfstep?prId=${encodeURIComponent(prId)}`);
+                if (resp2.ok) { const wf = await resp2.json(); fillWorkflow(wf); }
+            } catch (e) { console.warn('wf load error', e); }
+
+            try {
+                const h = await fetch(`${getBaseUrl()}/api/pr/${encodeURIComponent(prId)}/history-steps`);
+                if (h.ok) { const hist = await h.json(); fillHistory(hist.data || hist); }
+            } catch (e) { console.warn('history load error', e); }
+        }
+
+        function fillPrForm(obj) {
+            document.getElementById('pr_code').value = obj.pr_code || obj.pr_id || '';
+            document.getElementById('title').value = obj.title || '';
+            document.getElementById('amount').value = obj.amount || '';
+            document.getElementById('currency').value = obj.currency || '';
+            document.getElementById('department').value = obj.department || '';
+            document.getElementById('requester').value = obj.requester || '';
+            document.getElementById('vendor').value = obj.vendor_name || '';
+            document.getElementById('vendor_code').value = obj.vendor_code || '';
+            document.getElementById('cost_center').value = obj.cost_center || '';
+            document.getElementById('due_date').value = obj.due_date || '';
+            document.getElementById('attachment').value = obj.attachment || '';
+
+            // Hiển thị attachment info
+            if (obj.attachment) {
+                document.getElementById('attachmentInfo').innerHTML = `📎 File đính kèm: ${obj.attachment}`;
+            } else {
+                document.getElementById('attachmentInfo').innerHTML = '';
+            }
+        }
+
+        function fillWorkflow(wf) {
+            document.getElementById('wf_status').value = wf?.status || wf?.workflowStatus || '';
+            document.getElementById('wf_current_step').value = wf?.currentStep?.levelName || wf?.currentStep || wf?.workflowSteps?.find(s => s.status === 'READY')?.levelName || '';
+            const steps = wf?.workflowSteps || [];
+            const container = document.getElementById('stepsPreview');
+            container.innerHTML = '';
+            if (steps.length === 0) { container.innerHTML = '<div class="small">No steps available</div>'; return; }
+            const ul = document.createElement('div');
+            steps.forEach(s => {
+                const div = document.createElement('div');
+                div.style.padding = '8px'; div.style.borderBottom = '1px solid #f1f1f1';
+                div.innerHTML = `<strong>${s.levelName || s.level_name}</strong> — ${s.status || ''}`;
+                ul.appendChild(div);
+            });
+            container.appendChild(ul);
+        }
+
+        function fillHistory(items) {
+            const container = document.getElementById('historyContainer');
+            if (!items || items.length === 0) {
+                container.innerHTML = '<p class="small">Không có lịch sử</p>';
+                return;
+            }
+            let html = '<div class="approval-history"><table><thead><tr>' +
+                '<th>Step</th><th>Approver</th><th>Status</th><th>Comment</th><th>Timestamp</th>' +
+                '</tr></thead><tbody>';
+            items.forEach(it => {
+                // Xử lý timestamp ngắn gọn hơn nếu quá dài
+                let timestamp = it.timestamp || '';
+                if (timestamp.length > 19) timestamp = timestamp.substring(0, 19).replace('T', ' ');
+                html += `<tr>
+                    <td>${escapeHtml(it.step || '')}</td>
+                    <td>${escapeHtml(it.approver || '')}</td>
+                    <td>${escapeHtml(it.status || '')}</td>
+                    <td>${escapeHtml(it.comment || '')}</td>
+                    <td>${escapeHtml(timestamp)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // Thêm hàm escapeHtml để tránh XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function (m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function resetForm() {
+            document.querySelectorAll('input').forEach(i => {
+                if (!['baseUrl', 'prId'].includes(i.id) && i.type !== 'file') i.value = '';
+            });
+            document.getElementById('attachmentFile').value = '';
+            document.getElementById('attachmentInfo').innerHTML = '';
+            document.getElementById('historyContainer').innerHTML = '<p class="small">No history loaded</p>';
+            document.getElementById('stepsPreview').innerHTML = '';
+            currentPrId = '';
+        }
+
+        function saveLocal() { alert('Saved locally (demo). Use API integration to persist changes.)'); }
+    </script>
+</body>
+
+</html>

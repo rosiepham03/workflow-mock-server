@@ -16,4 +16,4 @@ server:
       afterMiddleware: compression
       mountPath: /api
       configuration:
-        baseUri: "http://localhost:8082"
+        baseUri: "http://localhost:8080"

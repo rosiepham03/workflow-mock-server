@@ -39,7 +39,7 @@ sap.ui.define([
 
             // Tạo model cho config
             var oConfigModel = new JSONModel({
-                baseUrl: "http://localhost:8082"
+                baseUrl: "http://localhost:8080"
             });
             this.setModel(oConfigModel, "config");
 
