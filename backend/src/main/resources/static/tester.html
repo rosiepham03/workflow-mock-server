@@ -904,10 +904,10 @@
 
             console.log('Current step:', currentStep.levelName, 'Order:', currentStep.sortOrder);
 
-            // Lấy các step có sortOrder nhỏ hơn và đã APPROVED/COMPLETED
+            // Lấy các step có sortOrder nhỏ hơn và đã APPROVED
             const previousSteps = steps.filter(s => {
                 const isBefore = s.sortOrder < currentStep.sortOrder;
-                const isCompleted = s.status === 'COMPLETED' || s.status === 'APPROVED';
+                const isCompleted = s.status === 'APPROVED';
                 return isBefore && isCompleted;
             });
 
@@ -1096,9 +1096,9 @@
                     step.status === 'READY' || step.status === 'IN_PROGRESS'
                 );
 
-                // Nếu không tìm thấy, lấy step đầu tiên có status khác COMPLETED/REJECTED
+                // Nếu không tìm thấy, lấy step đầu tiên có status khác APPROVED/REJECTED
                 const activeStep = currentStep || steps.find(step =>
-                    step.status !== 'COMPLETED' && step.status !== 'REJECTED' && step.status !== 'CANCELLED'
+                    step.status !== 'APPROVED' && step.status !== 'REJECTED' && step.status !== 'CANCELLED'
                 ) || steps[0];
 
                 // Hiển thị thông tin step hiện tại (chỉ hiển thị, không cho chọn)
@@ -1137,8 +1137,8 @@
             const total = steps.length;
             const currentOrder = currentStep.sortOrder;
 
-            // Tìm các step đã hoàn thành (COMPLETED)
-            const completedSteps = steps.filter(s => s.status === 'COMPLETED');
+            // Tìm các step đã hoàn thành (APPROVED)
+            const completedSteps = steps.filter(s => s.status === 'APPROVED');
 
             let progressHtml = `
         <div style="margin-top: 10px; padding: 10px; background: #e8f4f8; border-radius: 6px; font-size: 13px;">

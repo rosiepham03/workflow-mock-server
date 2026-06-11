@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Mock Data Editor</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 16px; }
+    header { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+    select, button { padding:8px; font-size:14px; }
+    textarea { width:100%; height:70vh; font-family: monospace; font-size:13px; padding:12px; box-sizing:border-box; }
+    footer { margin-top:8px; display:flex; gap:8px; align-items:center; }
+    .status { margin-left:8px; color:#444; }
+    .error { color:crimson; }
+    .ok { color:green; }
+  </style>
+</head>
+<body>
+  <header>
+    <label for="fileSelect">Choose file:</label>
+    <select id="fileSelect" aria-label="Select mock file"></select>
+    <button id="loadBtn">Load</button>
+    <button id="saveBtn">Save</button>
+    <button id="downloadBtn">Download</button>
+    <button id="formatBtn">Format</button>
+    <div id="status" class="status">Ready</div>
+  </header>
+
+  <main>
+    <textarea id="editor" spellcheck="false" placeholder="Select a file and click Load..."></textarea>
+  </main>
+
+  <footer>
+    <small>Files: payment-request.json, return-option.json, users.json, workflow.json</small>
+  </footer>
+
+  <script>
+    (function () {
+      // Base path where mock files are served. Adjust if needed.
+      const basePath = './mock-data/'; // e.g. '/mock-data/' or '/resources/mock-data/'
+      const files = [
+        'payment-request.json',
+        'return-option.json',
+        'users.json',
+        'workflow.json'
+      ];
+
+      const fileSelect = document.getElementById('fileSelect');
+      const loadBtn = document.getElementById('loadBtn');
+      const saveBtn = document.getElementById('saveBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const formatBtn = document.getElementById('formatBtn');
+      const editor = document.getElementById('editor');
+      const status = document.getElementById('status');
+
+      function setStatus(text, ok = true) {
+        status.textContent = text;
+        status.className = ok ? 'status ok' : 'status error';
+      }
+
+      function populate() {
+        files.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f;
+          opt.textContent = f;
+          fileSelect.appendChild(opt);
+        });
+      }
+
+      async function loadFile() {
+        const file = fileSelect.value;
+        setStatus('Loading...');
+        try {
+          const res = await fetch(basePath + file, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const text = await res.text();
+          try {
+            const parsed = JSON.parse(text);
+            editor.value = JSON.stringify(parsed, null, 2);
+          } catch {
+            // Not strict JSON parseable? show raw.
+            editor.value = text;
+          }
+          setStatus('Loaded ' + file);
+        } catch (err) {
+          setStatus('Load failed: ' + err.message, false);
+        }
+      }
+
+      async function saveFile() {
+        const file = fileSelect.value;
+        let content = editor.value;
+        // Validate JSON first
+        try {
+          const parsed = JSON.parse(content);
+          content = JSON.stringify(parsed, null, 2);
+          editor.value = content;
+        } catch (err) {
+          setStatus('Invalid JSON: ' + err.message, false);
+          return;
+        }
+
+        setStatus('Saving...');
+        try {
+          // Try PUT first (typical for updating files on an API)
+          let res = await fetch(basePath + file, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: content
+          });
+          if (!res.ok) {
+            // Some servers expect POST to a specific endpoint; attempt POST fallback
+            res = await fetch(basePath + file, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: content
+            });
+          }
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          setStatus('Saved ' + file);
+        } catch (err) {
+          setStatus('Save failed: ' + err.message, false);
+        }
+      }
+
+      function downloadFile() {
+        const filename = fileSelect.value || 'mock.json';
+        const blob = new Blob([editor.value], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatus('Downloaded ' + filename);
+      }
+
+      function formatJson() {
+        try {
+          const parsed = JSON.parse(editor.value);
+          editor.value = JSON.stringify(parsed, null, 2);
+          setStatus('Formatted JSON');
+        } catch (err) {
+          setStatus('Invalid JSON: ' + err.message, false);
+        }
+      }
+
+      // Keyboard shortcuts
+      editor.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          saveFile();
+        }
+      });
+
+      loadBtn.addEventListener('click', loadFile);
+      saveBtn.addEventListener('click', saveFile);
+      downloadBtn.addEventListener('click', downloadFile);
+      formatBtn.addEventListener('click', formatJson);
+
+      populate();
+      // Optionally auto-load first file
+      fileSelect.selectedIndex = 0;
+    })();
+  </script>
+</body>
+</html>

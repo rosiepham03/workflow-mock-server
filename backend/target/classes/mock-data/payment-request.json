@@ -3,7 +3,7 @@
     "pr_id": "550e8400-e29b-41d4-a716-446655440003",
     "pr_code": "PR-2026-00512",
     "title": "Yêu cầu thanh toán tiền bản quyền phần mềm Cloud 2026",
-    "amount": 12500.00,
+    "amount": 12500,
     "currency": "USD",
     "requester": "Nguyễn Văn A",
     "department": "IT Commercial",
@@ -19,11 +19,11 @@
       }
     ]
   },
-  "d3f7e2a1-1111-4b22-a123-111111111111": {
+  "d3f7e2a1-1111-4b22-a123-111111111112": {
     "pr_id": "d3f7e2a1-1111-4b22-a123-111111111111",
     "pr_code": "PR-2026-00513",
     "title": "Thanh toán dịch vụ tư vấn kỹ thuật",
-    "amount": 4500.00,
+    "amount": 4500,
     "currency": "USD",
     "requester": "Trần Thị B",
     "department": "Engineering",
@@ -35,7 +35,7 @@
     "pr_id": "a7b8c9d0-2222-4c33-b234-222222222222",
     "pr_code": "PR-2026-00514",
     "title": "Mua sắm thiết bị văn phòng",
-    "amount": 3200.00,
+    "amount": 3200,
     "currency": "VND",
     "requester": "Lê Văn C",
     "department": "Admin",
@@ -47,7 +47,7 @@
     "pr_id": "f1e2d3c4-3333-4d44-c345-333333333333",
     "pr_code": "PR-2026-00515",
     "title": "Chi phí đào tạo nhân sự",
-    "amount": 7800.00,
+    "amount": 7800,
     "currency": "USD",
     "requester": "Phạm Thị D",
     "department": "HR",

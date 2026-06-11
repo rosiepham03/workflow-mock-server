@@ -70,7 +70,7 @@ public class WorkflowController {
             @RequestParam String approverId,
             @RequestParam(required = false) String prId) {
 
-        log.info("[BE LOG] Tính toán danh sách Return hợp lệ cho step: {}", stepId);
+        log.info("[BE LOG] Tính toán danh sách Return hợp lệ cho step: {}, prId: {}", stepId, prId);
 
         // Tìm thông tin bước hiện tại
         WorkflowStepDTO actionStep = workflowDataService.findWorkflowStep(prId, stepId);
@@ -78,56 +78,123 @@ public class WorkflowController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Không tìm thấy Step hiện tại"));
         }
 
-        // Khởi tạo đối tượng Response chính theo Model
         ReturnOptionResponse response = new ReturnOptionResponse();
         response.setSuccess(true);
-        // Map tên level hiện tại thành Role (ví dụ: "Section Manager")
         response.setActorRole(mapLevelToRole(actionStep.getLevelName()));
 
         List<ReturnOptionDTO> options = new ArrayList<>();
+        Set<String> uniqueKeys = new HashSet<>(); // Để chống trùng lặp dữ liệu trong mảng options
 
-        for (WorkflowStepDTO step : workflowDataService.getWorkflowForPr(prId).getWorkflowSteps()) {
-            if (step.getSortOrder() < actionStep.getSortOrder()) { // Chỉ lấy các bước nằm phía trước
+        WorkflowDTO workflow = workflowDataService.getWorkflowForPr(prId);
+        if (workflow == null || workflow.getWorkflowSteps() == null) {
+            response.setOptions(options);
+            return ResponseEntity.ok(response);
+        }
+
+        for (WorkflowStepDTO step : workflow.getWorkflowSteps()) {
+            // Điều kiện: Hoặc là có Sort Order nhỏ hơn hiện tại, hoặc bước đó đã được xử lý
+            if (step.getSortOrder() < actionStep.getSortOrder() || "APPROVED".equalsIgnoreCase(step.getStatus())) {
+
+                // Loại trừ trường hợp add chính bước hiện tại vào danh sách trả về
+                if (step.getId().equals(actionStep.getId())) {
+                    continue;
+                }
+
                 if (step.getStepApprovers() != null) {
                     for (StepApproverDTO sa : step.getStepApprovers()) {
+                        ApproverDTO effective = (sa.getProxyApprover() != null) ? sa.getProxyApprover()
+                                : sa.getApprover();
+                        String actualUserId = (effective != null) ? effective.getId() : sa.getApproverId();
 
-                        // Khởi tạo DTO cho từng lựa chọn trả về
-                        ReturnOptionDTO dto = new ReturnOptionDTO();
-
-                        // Nếu approver có proxy, sử dụng proxy làm approver thực tế
-                        ApproverDTO effective = null;
-                        boolean isProxy = false;
-                        if (sa.getProxyApprover() != null) {
-                            effective = sa.getProxyApprover();
-                            isProxy = true;
-                        } else if (sa.getApprover() != null) {
-                            effective = sa.getApprover();
-                        }
+                        if (actualUserId == null)
+                            continue;
 
                         String approverName = (effective != null) ? effective.getFullName() : sa.getApproverId();
-                        if (isProxy) {
+                        if (sa.getProxyApprover() != null) {
                             approverName = approverName + " (Ủy quyền)";
                         }
-                        String approverEmail = (effective != null) ? effective.getEmail() : null;
 
-                        // Mapping dữ liệu vào Model ReturnOptionDTO
-                        dto.setName(approverName);
-                        dto.setEmail(approverEmail);
-                        dto.setOrder(step.getSortOrder());
-                        dto.setStepId(step.getId());
-                        dto.setUserId(effective != null ? effective.getId() : sa.getApproverId());
-                        dto.setPosition(step.getLevelName()); // Chức vụ/Vị trí tương ứng với Level bước duyệt
-                        dto.setDepartment(null);
+                        String comboKey = step.getId() + "_" + actualUserId;
+                        if (!uniqueKeys.contains(comboKey)) {
+                            ReturnOptionDTO dto = new ReturnOptionDTO();
+                            dto.setName(approverName);
+                            dto.setEmail((effective != null) ? effective.getEmail() : null);
+                            dto.setOrder(step.getSortOrder());
+                            dto.setStepId(step.getId());
+                            dto.setUserId(actualUserId);
+                            dto.setPosition(step.getLevelName());
+                            dto.setDepartment(null);
 
-                        options.add(dto);
+                            options.add(dto);
+                            uniqueKeys.add(comboKey);
+                        }
                     }
                 }
             }
         }
 
-        // Gán danh sách options vào đối tượng response
-        response.setOptions(options);
+        // ĐIỀU CHỈNH 2: Quét toàn bộ lịch sử để tìm NGƯỜI VỪA RETURN (Re-return logic
+        // từ bước cao hơn)
+        Map<String, Object> allPRs = workflowDataService.getPaymentRequests();
+        if (allPRs != null && prId != null && allPRs.containsKey(prId)) {
+            Map<String, Object> paymentRequest = (Map<String, Object>) allPRs.get(prId);
+            List<Map<String, Object>> historyLog = (List<Map<String, Object>>) paymentRequest.get("history_log");
 
+            if (historyLog != null && !historyLog.isEmpty()) {
+                Map<String, Object> lastReturnLog = null;
+
+                // Duyệt ngược để tìm bản ghi hành động RETURN gần nhất
+                for (int i = historyLog.size() - 1; i >= 0; i--) {
+                    Map<String, Object> logEntry = historyLog.get(i);
+                    String status = (String) logEntry.get("status");
+                    if ("RETURN".equalsIgnoreCase(status)) {
+                        lastReturnLog = logEntry;
+                        break;
+                    }
+                }
+
+                if (lastReturnLog != null) {
+                    String returnStepName = (String) lastReturnLog.get("step");
+                    String returnActor = (String) lastReturnLog.get("approver");
+
+                    WorkflowStepDTO sourceStep = workflow.getWorkflowSteps().stream()
+                            .filter(s -> s.getLevelName() != null && s.getLevelName().equalsIgnoreCase(returnStepName))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (sourceStep != null) {
+                        UserDTO userMeta = workflowDataService.getUsers().stream()
+                                .filter(u -> Objects.equals(u.getFullName(), returnActor)
+                                        || Objects.equals(u.getId(), returnActor))
+                                .findFirst()
+                                .orElse(null);
+
+                        String finalUserId = (userMeta != null) ? userMeta.getId() : returnActor;
+                        String comboKey = sourceStep.getId() + "_" + finalUserId;
+
+                        if (!uniqueKeys.contains(comboKey)) {
+                            ReturnOptionDTO returnDto = new ReturnOptionDTO();
+                            returnDto.setName(userMeta != null ? userMeta.getFullName() : returnActor);
+                            returnDto.setEmail(userMeta != null ? userMeta.getEmail() : null);
+                            returnDto.setOrder(sourceStep.getSortOrder());
+                            returnDto.setStepId(sourceStep.getId());
+                            returnDto.setUserId(finalUserId);
+                            returnDto.setPosition(sourceStep.getLevelName());
+                            returnDto.setDepartment(null);
+
+                            options.add(returnDto);
+                            uniqueKeys.add(comboKey);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sắp xếp lại danh sách options theo thứ tự gối đầu (Sort Order tăng dần) để
+        // popup hiển thị đẹp và chuẩn quy trình
+        options.sort(Comparator.comparingInt(ReturnOptionDTO::getOrder));
+
+        response.setOptions(options);
         return ResponseEntity.ok(response);
     }
 
@@ -251,7 +318,7 @@ public class WorkflowController {
 
                 if (step.getIsParallel() == null || !step.getIsParallel() || allApproved) {
 
-                    step.setStatus("COMPLETED");
+                    step.setStatus("APPROVED");
                     step.setCompleteAt(nowIso);
 
                     WorkflowStepDTO nextStep = workflow.getWorkflowSteps().stream()
@@ -483,97 +550,97 @@ public class WorkflowController {
     }
 
     // 4. GET SINGLE WORKFLOW STEP
-    @GetMapping("/api/workflow/WorkflowSteps/{id}")
-    public ResponseEntity<?> getWorkflowStep(@PathVariable String id) {
-        log.info("[GET] Chi tiết Workflow Step: {}", id);
-        String prId = null;
-        // extract prId from request (via RequestParam cannot be added here easily) -
-        // fallback to template
+    @GetMapping("/api/workflow/{prId}/WorkflowSteps/{id}")
+    public ResponseEntity<?> getWorkflowStep(
+            @PathVariable String prId,
+            @PathVariable String id) {
+        log.info("[GET] Chi tiết Workflow Step: {} prId={}", id, prId);
+
         WorkflowStepDTO step = workflowDataService.findWorkflowStep(prId, id);
+
         if (step == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    Map.of("error", "Workflow Step not found"));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Workflow Step not found"));
         }
 
-        return ResponseEntity.ok(new HashMap<String, Object>() {
-            {
-                put("ID", step.getId());
-                put("status_code", step.getStatus());
-                put("IsActiveEntity", step.getIsActiveEntity());
-                put("stepApprovers", step.getStepApprovers());
-            }
-        });
+        return ResponseEntity.ok(Map.of(
+                "ID", step.getId(),
+                "status_code", step.getStatus(),
+                "IsActiveEntity", step.getIsActiveEntity(),
+                "stepApprovers", step.getStepApprovers()));
     }
 
     // 6. GET VALID REASSIGNEES (Lọc User đồng cấp hợp lệ)
     @GetMapping("/api/workflow/valid-reassignees")
-        public ResponseEntity<?> getValidReassignees(
+    public ResponseEntity<?> getValidReassignees(
             @RequestParam String currentApproverId,
             @RequestParam(required = false) String currentRole) {
 
         return internalGetValidReassignees(currentApproverId, currentRole);
-        }
+    }
 
-        // Compatibility: accept old POST path and also GET on the old path
-        @PostMapping("/api/workflow/get-valid-reassignees")
-        public ResponseEntity<?> postGetValidReassignees(HttpServletRequest request) {
-            String currentApproverId = null;
-            String currentRole = null;
+    // Compatibility: accept old POST path and also GET on the old path
+    @PostMapping("/api/workflow/get-valid-reassignees")
+    public ResponseEntity<?> postGetValidReassignees(HttpServletRequest request) {
+        String currentApproverId = null;
+        String currentRole = null;
 
-            try {
-                String contentType = request.getContentType();
-                if (contentType != null && contentType.contains("application/json")) {
-                    String body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
-                    if (body != null && !body.isBlank()) {
-                        ObjectMapper om = new ObjectMapper();
-                        Map<String, Object> map = om.readValue(body, new TypeReference<Map<String, Object>>() {
-                        });
-                        if (map != null) {
-                            if (map.get("current_approver_id") != null)
-                                currentApproverId = String.valueOf(map.get("current_approver_id"));
-                            if (currentApproverId == null && map.get("currentApproverId") != null)
-                                currentApproverId = String.valueOf(map.get("currentApproverId"));
+        try {
+            String contentType = request.getContentType();
+            if (contentType != null && contentType.contains("application/json")) {
+                String body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
+                if (body != null && !body.isBlank()) {
+                    ObjectMapper om = new ObjectMapper();
+                    Map<String, Object> map = om.readValue(body, new TypeReference<Map<String, Object>>() {
+                    });
+                    if (map != null) {
+                        if (map.get("current_approver_id") != null)
+                            currentApproverId = String.valueOf(map.get("current_approver_id"));
+                        if (currentApproverId == null && map.get("currentApproverId") != null)
+                            currentApproverId = String.valueOf(map.get("currentApproverId"));
 
-                            if (map.get("current_role") != null)
-                                currentRole = String.valueOf(map.get("current_role"));
-                            if (currentRole == null && map.get("currentRole") != null)
-                                currentRole = String.valueOf(map.get("currentRole"));
-                        }
+                        if (map.get("current_role") != null)
+                            currentRole = String.valueOf(map.get("current_role"));
+                        if (currentRole == null && map.get("currentRole") != null)
+                            currentRole = String.valueOf(map.get("currentRole"));
                     }
                 }
-            } catch (Exception ex) {
-                log.warn("Failed to parse JSON request for get-valid-reassignees: {}", ex.getMessage());
             }
-
-            // fallback to request params (form or query)
-            if (currentApproverId == null) {
-                currentApproverId = request.getParameter("current_approver_id");
-                if (currentApproverId == null) currentApproverId = request.getParameter("currentApproverId");
-            }
-            if (currentRole == null) {
-                currentRole = request.getParameter("current_role");
-                if (currentRole == null) currentRole = request.getParameter("currentRole");
-            }
-
-            log.info("[POST] /api/workflow/get-valid-reassignees -> approverId={}, role={}", currentApproverId,
-                    currentRole);
-
-            return internalGetValidReassignees(currentApproverId, currentRole);
+        } catch (Exception ex) {
+            log.warn("Failed to parse JSON request for get-valid-reassignees: {}", ex.getMessage());
         }
 
-        @GetMapping("/api/workflow/get-valid-reassignees")
-        public ResponseEntity<?> getCompatGetValidReassignees(
+        // fallback to request params (form or query)
+        if (currentApproverId == null) {
+            currentApproverId = request.getParameter("current_approver_id");
+            if (currentApproverId == null)
+                currentApproverId = request.getParameter("currentApproverId");
+        }
+        if (currentRole == null) {
+            currentRole = request.getParameter("current_role");
+            if (currentRole == null)
+                currentRole = request.getParameter("currentRole");
+        }
+
+        log.info("[POST] /api/workflow/get-valid-reassignees -> approverId={}, role={}", currentApproverId,
+                currentRole);
+
+        return internalGetValidReassignees(currentApproverId, currentRole);
+    }
+
+    @GetMapping("/api/workflow/get-valid-reassignees")
+    public ResponseEntity<?> getCompatGetValidReassignees(
             @RequestParam String currentApproverId,
             @RequestParam(required = false) String currentRole) {
 
         log.info("[GET] /api/workflow/get-valid-reassignees -> approverId={}, role={}", currentApproverId,
-            currentRole);
+                currentRole);
 
         return internalGetValidReassignees(currentApproverId, currentRole);
-        }
+    }
 
-        // Shared helper used by all variants
-        private ResponseEntity<?> internalGetValidReassignees(String currentApproverId, String currentRole) {
+    // Shared helper used by all variants
+    private ResponseEntity<?> internalGetValidReassignees(String currentApproverId, String currentRole) {
 
         log.info("[INTERNAL] getValidReassignees -> approverId={}, role={}", currentApproverId, currentRole);
 
@@ -581,9 +648,9 @@ public class WorkflowController {
 
         if (allUsers == null) {
             return ResponseEntity.ok(Map.of(
-                "success", true,
-                "total", 0,
-                "data", Collections.emptyList()));
+                    "success", true,
+                    "total", 0,
+                    "data", Collections.emptyList()));
         }
 
         // Nếu không truyền role thì tự tìm từ user hiện tại
@@ -591,31 +658,31 @@ public class WorkflowController {
 
         if (role == null || role.isBlank()) {
             role = allUsers.stream()
-                .filter(u -> Objects.equals(u.getId(), currentApproverId))
-                .map(UserDTO::getRole)
-                .findFirst()
-                .orElse(null);
+                    .filter(u -> Objects.equals(u.getId(), currentApproverId))
+                    .map(UserDTO::getRole)
+                    .findFirst()
+                    .orElse(null);
         }
 
         if (role == null) {
             return ResponseEntity.badRequest().body(Map.of(
-                "success", false,
-                "message", "Cannot determine current role"));
+                    "success", false,
+                    "message", "Cannot determine current role"));
         }
 
         final String finalRole = role;
 
         List<UserDTO> validUsers = allUsers.stream()
-            .filter(user -> "Active".equalsIgnoreCase(user.getStatus())
-                && Objects.equals(user.getRole(), finalRole)
-                && !Objects.equals(user.getId(), currentApproverId))
-            .collect(Collectors.toList());
+                .filter(user -> "Active".equalsIgnoreCase(user.getStatus())
+                        && Objects.equals(user.getRole(), finalRole)
+                        && !Objects.equals(user.getId(), currentApproverId))
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(Map.of(
-            "success", true,
-            "total", validUsers.size(),
-            "data", validUsers));
-        }
+                "success", true,
+                "total", validUsers.size(),
+                "data", validUsers));
+    }
 
     // 7. GET HISTORY STEPS
     @GetMapping("/api/pr/{id}/history-steps")
@@ -643,7 +710,6 @@ public class WorkflowController {
                     String statusUpper = status.toUpperCase();
 
                     return statusUpper.contains("APPROVE")
-                            || "COMPLETED".equals(statusUpper)
                             || "REJECT".equals(statusUpper)
                             || "RETURN".equals(statusUpper)
                             || "REASSIGN".equals(statusUpper)

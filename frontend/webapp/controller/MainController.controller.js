@@ -165,7 +165,7 @@ sap.ui.define([
             
             // Calculate progress
             var completedCount = aSteps.filter(function(step) {
-                return step.status === "COMPLETED" || step.status === "APPROVED";
+                return step.status === "APPROVED";
             }).length;
             
             var progressPercent = aSteps.length > 0 ? (completedCount / aSteps.length) * 100 : 0;
@@ -207,7 +207,7 @@ sap.ui.define([
             
             var that = this;
             aSteps.forEach(function(step, index) {
-                var isCompleted = step.status === "COMPLETED" || step.status === "APPROVED";
+                var isCompleted = step.status === "APPROVED";
                 var isCurrent = currentStep && step.ID === currentStep.ID;
                 var isRejected = step.status === "REJECTED";
                 var isOnHold = step.status === "ON_HOLD";
@@ -268,7 +268,7 @@ sap.ui.define([
         getStatusState: function(status) {
             if (!status) return "None";
             var sStatus = status.toUpperCase();
-            if (sStatus === "COMPLETED" || sStatus === "APPROVED") return "Success";
+            if (sStatus === "APPROVED") return "Success";
             if (sStatus === "REJECTED") return "Error";
             if (sStatus === "ON_HOLD") return "Warning";
             if (sStatus === "READY" || sStatus === "IN_PROGRESS") return "Emphasized";
@@ -404,7 +404,7 @@ sap.ui.define([
             // Add previous steps
             aSteps.forEach(function(step) {
                 if (step.sortOrder < currentStep.sortOrder && 
-                    (step.status === "COMPLETED" || step.status === "APPROVED")) {
+                    (step.status === "APPROVED")) {
                     oSelect.addItem(new sap.ui.core.ListItem({
                         key: step.ID,
                         text: "⬅️ " + step.levelName + " - Already approved"

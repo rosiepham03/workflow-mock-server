@@ -11,7 +11,7 @@
   "rule_ID": "w1a1a1a1-2222-2222-2222-222222222222",
   "faRule_ID": "w2a1a1a1-1111-1111-1111-111111111111",
   "title": "Payment Request - Equipment Purchase",
-  "amount": 30000000,
+  "amount": 40000000,
   "currency_code": "VND",
   "status": "READY",
   "requester_id": "550e8400-e29b-41d4-a716-446655440008",
@@ -84,13 +84,13 @@
             "id": "550e8400-e29b-41d4-a716-446655440004",
             "employeeID": "E004",
             "fullName": "Võ Thị Hương",
-            "email": "ly.dinhvan@vn.bosch.com"
+            "email": "fixed-term.hong.phamthikim@vn.bosch.com"
           },
           "proxyApprover": {
             "id": "550e8400-e29b-41d4-a716-446655440003",
             "employeeID": "E003",
             "fullName": "Phạm Duy Hùng",
-            "email": "ly.dinhvan@vn.bosch.com"
+            "email": "fixed-term.hong.phamthikim@vn.bosch.com"
           }
         }
       ]
@@ -189,7 +189,7 @@
             "id": "550e8400-e29b-41d4-a716-446655440005",
             "employeeID": "E005",
             "fullName": "Bùi Quốc Hòa",
-            "email": "ly.dinhvan@vn.bosch.com"
+            "email": "fixed-term.hong.phamthikim@vn.bosch.com"
           },
           "proxyApprover": null
         },
@@ -314,7 +314,7 @@
             "id": "550e8400-e29b-41d4-a716-446655440003",
             "employeeID": "E003",
             "fullName": "Phạm Duy Hùng",
-            "email": "ly.dinhvan@vn.bosch.com"
+            "email": "fixed-term.hong.phamthikim@vn.bosch.com"
           },
           "proxyApprover": {
             "id": "550e8400-e29b-41d4-a716-446655440004",
@@ -469,7 +469,7 @@
             "id": "550e8400-e29b-41d4-a716-446655440012",
             "employeeID": "E012",
             "fullName": "Trần Chí Kiên",
-            "email": "ly.dinhvan@vn.bosch.com"
+            "email": "fixed-term.hong.phamthikim@vn.bosch.com"
           },
           "proxyApprover": null
         },

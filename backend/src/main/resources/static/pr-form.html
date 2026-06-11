@@ -377,7 +377,7 @@
                 const result = await resp.json();
                 // Lưu tên file vào hidden input
                 document.getElementById('attachment').value = result.filename || file.name;
-                document.getElementById('attachmentInfo').innerHTML = `✅ Đã upload: ${result.filename || file.name}`;
+                document.getElementById('attachmentInfo').innerHTML = `Đã upload: ${result.filename || file.name}`;
 
                 // Hiển thị link tải nếu có
                 if (result.downloadUrl) {
@@ -394,7 +394,7 @@
             } catch (e) {
                 console.error('Upload error:', e);
                 alert('Lỗi upload: ' + e.message);
-                document.getElementById('attachmentInfo').innerHTML = `❌ Upload thất bại: ${e.message}`;
+                document.getElementById('attachmentInfo').innerHTML = `Upload thất bại: ${e.message}`;
             }
         }
 

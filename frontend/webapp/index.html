@@ -497,7 +497,7 @@
             <div class="card-panel">
                 <div class="card-header">
                     <i class="fas fa-project-diagram"></i>
-                    <h2>✅ Approval Flow & Step Progress</h2>
+                    <h2>Approval Flow & Step Progress</h2>
                 </div>
                 <div class="card-body">
                     <div class="workflow-steps" id="workflowVisualization">
@@ -622,7 +622,7 @@
                 var raw = step.raw || {};
                 var stepStatusRaw = (raw.status || '').toString().toUpperCase();
                 var visual = 'pending';
-                if (stepStatusRaw === 'COMPLETED' || stepStatusRaw === 'APPROVED') visual = 'approved';
+                if (stepStatusRaw === 'APPROVED') visual = 'approved';
                 else if (stepStatusRaw === 'REJECTED') visual = 'rejected';
 
                 progressHtml += '<span class="progress-dot ' + visual + '" title="' + (step.level || '') + '"></span>';
@@ -670,7 +670,7 @@
                 cardsHtml += '<div class="step-column-header">' + (levelLabel || '') + '</div>';
                 approvers.forEach(function(ap) {
                     var statusKey = 'pending';
-                    if (ap.status === 'APPROVED' || ap.status === 'COMPLETED') statusKey = 'approved';
+                    if (ap.status === 'APPROVED') statusKey = 'approved';
                     if (ap.status === 'REJECTED') statusKey = 'rejected';
 
                     var statusText = ap.status ? ap.status.charAt(0).toUpperCase() + ap.status.slice(1).toLowerCase() : 'Pending';
@@ -737,10 +737,10 @@
                     if (selectedOutcome === "APPROVE") {
                         if (currentStepIndex + 1 < stepDefinitions.length) {
                             newStep = currentStepIndex + 1;
-                            statusMsg = `✅ APPROVED by ${stepDefinitions[currentStepIndex].approver}. Workflow advanced to ${stepDefinitions[newStep].level}.`;
+                            statusMsg = `APPROVED by ${stepDefinitions[currentStepIndex].approver}. Workflow advanced to ${stepDefinitions[newStep].level}.`;
                             if (newStep === stepDefinitions.length - 1) statusMsg += " Final step reached – pending completion.";
                         } else {
-                            statusMsg = `✅ FINAL APPROVAL completed! Payment request fully approved.`;
+                            statusMsg = `FINAL APPROVAL completed! Payment request fully approved.`;
                             newStep = currentStepIndex;
                             workflowStatus = "COMPLETED";
                         }

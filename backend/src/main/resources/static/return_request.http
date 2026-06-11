@@ -1,0 +1,113 @@
+### Cấu hình biến môi trường toàn cục (Environment Variables)
+@baseUrl = http://localhost:8080
+@prId = 550e8400-e29b-41d4-a716-446655440003
+
+### =====================================================================
+### BƯỚC CHUẨN BỊ 1: Tạo lịch sử duyệt qua các bước (Giả lập Approve Step 1 -> 4)
+### Để Step 3 và Step 4 chuyển sang trạng thái "APPROVED" trong RAM
+### =====================================================================
+
+# @name approveStep1_Supervisor
+POST {{baseUrl}}/api/workflow/WorkflowSteps/eb37082a-b010-4d11-a47e-5d7382d30fef?prId={{prId}}
+Content-Type: application/json
+
+{
+  "status_code": "APPROVE",
+  "approverId": "550e8400-e29b-41d4-a716-446655440104",
+  "actionBy": "Đỗ Văn Linh (Ủy quyền)",
+  "comment": "Thông qua Step 1"
+}
+
+###
+
+# @name approveStep2_SectionManager
+POST {{baseUrl}}/api/workflow/WorkflowSteps/d17d085c-cbe4-4cbb-bfb3-52dfcccd3900?prId={{prId}}
+Content-Type: application/json
+
+{
+  "status_code": "APPROVE",
+  "approverId": "550e8400-e29b-41d4-a716-446655440010",
+  "actionBy": "Nguyễn Hải Long",
+  "comment": "Thông qua Step 2"
+}
+
+###
+
+# @name approveStep3_DepartmentManager
+POST {{baseUrl}}/api/workflow/WorkflowSteps/5969d5e4-a0cd-47e4-bc99-c80078812e9d?prId={{prId}}
+Content-Type: application/json
+
+{
+  "status_code": "APPROVE",
+  "approverId": "550e8400-e29b-41d4-a716-446655440005",
+  "actionBy": "Bùi Quốc Hòa",
+  "comment": "Thông qua Step 3"
+}
+
+###
+
+# @name approveStep4_DeputyDivisionManager
+POST {{baseUrl}}/api/workflow/WorkflowSteps/ec4d34bb-785a-41ca-adee-3c1afbe201a5?prId={{prId}}
+Content-Type: application/json
+
+{
+  "status_code": "APPROVE",
+  "approverId": "550e8400-e29b-41d4-a716-446655440004",
+  "actionBy": "Võ Thị Hương",
+  "comment": "Thông qua Step 4"
+}
+
+
+### =====================================================================
+### BƯỚC CHUẨN BỊ 2: Thực hiện lệnh RETURN từ Step 5 về Step 2
+### Mục đích: Để phát sinh log hành động "RETURN" của Division Manager trong history_log
+### =====================================================================
+
+# @name returnFromStep5ToStep2
+POST {{baseUrl}}/api/workflow/WorkflowSteps/71bb11a1-2870-4325-b612-04093c0fe103?prId={{prId}}
+Content-Type: application/json
+
+{
+  "status_code": "RETURN",
+  "approverId": "550e8400-e29b-41d4-a716-446655440004",
+  "actionBy": "Võ Thị Hương",
+  "targetId": "d17d085c-cbe4-4cbb-bfb3-52dfcccd3900",
+  "comment": "Trả hồ sơ từ bước 5 về bước 2 để kiểm tra lại dữ liệu"
+}
+
+
+### =====================================================================
+### TEST CASE CHÍNH: Lấy danh sách Return Options tại Step 2 (Section Manager)
+### LÚC NÀY ĐẢM BẢO SẼ RA ĐẦY ĐỦ STEP 1, 3, 4 VÀ NGƯỜI ĐÃ RETURN Ở STEP 5
+### =====================================================================
+
+# @name getReReturnOptionsAtStep2
+GET {{baseUrl}}/api/workflow/return-options
+    ?stepId=d17d085c-cbe4-4cbb-bfb3-52dfcccd3900
+    &approverId=550e8400-e29b-41d4-a716-446655440010
+    &prId={{prId}}
+Content-Type: application/json
+
+> {%
+    client.test("Kiểm tra trạng thái phản hồi phải là 200 OK", function() {
+        client.assert(response.status === 200, "Mã phản hồi không phải 200");
+    });
+
+    client.test("Kiểm tra sự xuất hiện đầy đủ của các bước", function() {
+        var options = response.body.options;
+        
+        // 1. Kiểm tra có Step 1 không (Đỗ Văn Linh)
+        var hasStep1 = options.some(function(opt) { return opt.position.includes("Supervisor"); });
+        client.assert(hasStep1, "Thiếu bước Supervisor (Step 1) trong danh sách trả về");
+
+        // 2. Kiểm tra có Step 3 không (Bùi Quốc Hòa)
+        var hasStep3 = options.some(function(opt) { return opt.position.includes("Department Manager"); });
+        client.assert(hasStep3, "Thiếu bước Department Manager (Step 3) trong danh sách trả về");
+
+        // 3. Kiểm tra có Step 5 vừa thực hiện trả về không (Võ Thị Hương)
+        var hasStep5Actor = options.some(function(opt) {
+            return opt.position.includes("Division Manager") || opt.step_ID === "71bb11a1-2870-4325-b612-04093c0fe103";
+        });
+        client.assert(hasStep5Actor, "Lỗi logic: Không bốc được người duyệt ở Division Manager (Step 5) vừa thực hiện lệnh RETURN vào danh sách options");
+    });
+%}
